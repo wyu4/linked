@@ -4,11 +4,16 @@
 @theme {
     --color-background: rgba(1, 4, 9);
     --color-foreground: rgba(13, 17, 23);
-    --color-border: rgba(33, 40, 48);
+    --color-clickable: rgba(33, 40, 48);
+    --color-border: rgba(61, 68, 77);
     --color-focus: rgba(18, 29, 47);
     --color-link: rgba(40, 131, 248);
     --color-font: rgba(240, 246, 252);
     --color-success: rgba(35, 134, 54);
+}
+
+body {
+    @apply: bg-background;
 }
 
 h1,
@@ -18,6 +23,7 @@ button,
 a,
 input {
     font-family: "Funnel Sans", sans-serif;
+    margin-block: 0;
     @apply text-font;
 }
 
@@ -28,7 +34,7 @@ a {
 
 a,
 button {
-    @apply cursor-pointer;
+    @apply cursor-pointer brightness-100 hover:brightness-125 active:brightness-90 transition duration-200;
 }
 
 h2 {
