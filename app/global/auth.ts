@@ -9,4 +9,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }),
     ],
     secret: process.env.BETTER_AUTH_SECRET,
+    pages: {
+        signIn: "/login",
+        error: "/login",
+    },
+    callbacks: {
+        async jwt({ account, token }) {
+            if (account) {
+                token.github = account.access_token;
+            }
+            return token;
+        },
+        async session({ session, token }) {
+            session.github = token.github;
+            return session;
+        },
+    },
 });

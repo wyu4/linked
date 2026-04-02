@@ -16,9 +16,7 @@ export default function LoginPage() {
                 <button
                     className="p-3 w-sm gap-2 flex flex-row justify-center items-center bg-clickable border border-border rounded-sm"
                     onClick={async () => {
-                        await signIn("github", {
-                            redirect: false,
-                        });
+                        await signIn("github");
                     }}
                 >
                     <FaGithub size={25} />
