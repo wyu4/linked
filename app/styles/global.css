@@ -1,0 +1,40 @@
+@import url("https://fonts.googleapis.com/css2?family=Funnel+Sans:ital,wght@0,800;1,800&family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&display=swap");
+@import "tailwindcss";
+
+@theme {
+    --color-background: rgba(1, 4, 9);
+    --color-foreground: rgba(13, 17, 23);
+    --color-border: rgba(33, 40, 48);
+    --color-focus: rgba(18, 29, 47);
+    --color-link: rgba(40, 131, 248);
+    --color-font: rgba(240, 246, 252);
+    --color-success: rgba(35, 134, 54);
+}
+
+h1,
+h2,
+p,
+button,
+a,
+input {
+    font-family: "Funnel Sans", sans-serif;
+    @apply text-font;
+}
+
+a {
+    text-decoration: underline;
+    @apply text-link;
+}
+
+a,
+button {
+    @apply cursor-pointer;
+}
+
+h2 {
+    @apply text-2xl font-bold;
+}
+
+.code {
+    font-family: "Google Sans Code", monospace;
+}
