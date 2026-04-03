@@ -5,5 +5,5 @@ import DashboardClient from "../components/pages/dashboard";
 export default async () => {
     const session = await auth();
     if (!session?.github) redirect("/login");
-    return <DashboardClient />;
+    return <DashboardClient name={session.user?.name || undefined} />;
 };
