@@ -4,8 +4,7 @@ import { FaGithub } from "react-icons/fa";
 import InfoWidget from "../info";
 import { signIn } from "next-auth/react";
 
-export default function LoginPage() {
-    "use client";
+export default function LoginClient() {
     return (
         <div className="absolute flex flex-col justify-center items-center bg-background min-h-full min-w-full">
             <div className="flex flex-col justify-center items-center bg-foreground px-6 py-3 gap-3 border border-border rounded">
