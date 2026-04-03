@@ -1,5 +1,5 @@
-import { NextApiRequest, NextApiResponse } from "next";
+import { NextResponse } from "next/server";
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
-    res.status(200).json({ message: "This will be the endpoint for search requests!" });
+export function GET(res: Request) {
+    return NextResponse.json({ message: "This will be the endpoint for search requests!" });
 }
