@@ -40,6 +40,24 @@ async function getFollowers(token: string, login: string) {
 }
 
 /**
+ * Get the followings of a user
+ * @param token Token
+ * @param login Username
+ * @returns A list of users followed by the user
+ */
+async function getFollowing(token: string, login: string) {
+    const result = await fetchFromGitHub(token, `https://api.github.com/users/${login}/following?per_page=100`);
+    if (!result.ok) {
+        console.error(`Failed to get following for '${login}' (${result.status}):`, result.statusText);
+        return [];
+    }
+    const data = (await result.json()) as {
+        login: string | undefined;
+    }[];
+    return data.map((data) => data.login?.toLowerCase()).filter((data) => data !== undefined);
+}
+
+/**
  * Status of an API call in text form.
  */
 type CredentialStatus = "RateLimited" | "Invalid" | "Ok";
@@ -77,7 +95,7 @@ export async function validateUsername(token: string, login: string) {
 export type SearchPhase = "Validating" | "Searching";
 
 /**
- * Performs Breadth-First Search (BFS) on the user's follower tree
+ * Performs BI-Directional Breadth-First Search (BFS) on the user's follower tree
  * @param token GitHub API Token
  * @param from First user
  * @param to Target user
@@ -85,7 +103,7 @@ export type SearchPhase = "Validating" | "Searching";
  * @param cache Optional pre-existing follower cache
  * @returns A promise containing a path from the user to the target. If no path was found, returns an empty path.
  */
-export async function breadthFirstSearchConnections(
+export async function searchConnections(
     token: string,
     from: string,
     to: string,
@@ -117,34 +135,65 @@ export async function breadthFirstSearchConnections(
     }
 
     callback?.("Searching");
-    const visited: string[] = [from];
-    const queue: MutualConnection[][] = [[{ login: from, type: "from" }]];
+
+    const startQueue: MutualConnection[][] = [[{ login: from, type: "from" }]];
+    const startVisited = new Map<string, MutualConnection[]>();
+    startVisited.set(from, [{ login: from, type: "from" } as MutualConnection]);
+
+    const endQueue: MutualConnection[][] = [[{ login: to, type: "to" }]];
+    const endVisited = new Map<string, MutualConnection[]>();
+
     let count = 0;
 
-    while (queue.length > 0) {
+    const reconstruct = (startPath: MutualConnection[], endPath: MutualConnection[]): MutualConnection[] => {
+        console.log(`Start Path: ${startPath.map((con) => con.login).join(" -> ")}\nEnd Path: ${endPath.map((con) => con.login).join(" -> ")}`);
+        return [...startPath, ...[...endPath].reverse().slice(1)];
+    };
+
+    const readQueue = async (
+        queue: MutualConnection[][],
+        currentVisited: Map<string, MutualConnection[]>,
+        counterVisited: Map<string, MutualConnection[]>,
+        inverted: boolean,
+    ) => {
         const path = queue.shift()!;
-        if (path.length <= 0) continue;
+        if (path.length <= 0) return;
         const node = path[path.length - 1];
 
         const order = path.length;
-        if (order >= MAX_DEPTH) continue;
+        if (order >= MAX_DEPTH) return;
 
-        const neighbors = cache.get(node.login) || (await getFollowers(token, node.login));
-        cache.set(node.login, neighbors);
+        const key = (inverted ? "end/" : "start/") + node.login;
+        const neighbors = cache.get(key) ?? (inverted ? await getFollowing(token, node.login) : await getFollowers(token, node.login));
+        cache.set(key, neighbors);
 
         for (const neighbor of neighbors) {
-            if (visited.includes(neighbor)) {
-                continue;
-            }
-            count += 1;
-            callback?.("Searching", count);
-            visited.push(neighbor);
+            if (currentVisited.has(neighbor)) continue;
 
-            const found = neighbor === to;
-            const newPath: MutualConnection[] = [...path, { login: neighbor, type: found ? "to" : "follower" }];
-            if (found) return newPath;
+            count++;
+
+            callback?.("Searching", count);
+
+            const newPath: MutualConnection[] = [...path, { login: neighbor, type: "follower" }];
+            currentVisited.set(neighbor, newPath);
+
+            if (counterVisited.has(neighbor)) {
+                if (inverted) {
+                    return reconstruct(counterVisited.get(neighbor)!, newPath);
+                }
+                return reconstruct(newPath, counterVisited.get(neighbor)!);
+            }
+
             queue.push(newPath);
         }
+    };
+
+    while (startQueue.length > 0 && endQueue.length > 0) {
+        let result = await readQueue(startQueue, startVisited, endVisited, false);
+        if (result) return result;
+
+        result = await readQueue(endQueue, endVisited, startVisited, true);
+        if (result) return result;
     }
 
     return [];

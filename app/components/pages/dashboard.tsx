@@ -1,7 +1,7 @@
 "use client";
 import { FaArrowRightLong } from "react-icons/fa6";
 import { FaSearch } from "react-icons/fa";
-import { breadthFirstSearchConnections } from "@/app/utils/search";
+import { searchConnections } from "@/app/utils/search";
 import { useSession } from "next-auth/react";
 import { useEffect, useRef, useState } from "react";
 
@@ -27,7 +27,7 @@ export default function DashboardClient({ name = "Unknown User" }: DashboardClie
 
         console.log("Searching...");
 
-        breadthFirstSearchConnections(
+        searchConnections(
             token,
             user,
             target,
