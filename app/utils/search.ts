@@ -3,7 +3,7 @@ export type MutualConnection = {
     type: "follower" | "from" | "to";
 };
 
-const MAX_DEPTH = +(process.env.NEXT_PUBLIC_MAX_DEPTH || 5);
+const MAX_DEPTH = +(process.env.NEXT_PUBLIC_MAX_DEPTH || 4);
 
 /**
  * Send a GET-request to GitHub's REST API
@@ -161,7 +161,7 @@ export async function searchConnections(
         const node = path[path.length - 1];
 
         const order = path.length;
-        if (order >= MAX_DEPTH) return;
+        if (order > MAX_DEPTH) return;
 
         const key = (inverted ? "end/" : "start/") + node.login;
         const neighbors = cache.get(key) ?? (inverted ? await getFollowing(token, node.login) : await getFollowers(token, node.login));
