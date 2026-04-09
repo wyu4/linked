@@ -3,7 +3,7 @@ export type MutualConnection = {
     type: "follower" | "from" | "to";
 };
 
-const MAX_DEPTH = +(process.env.NEXT_PUBLIC_MAX_DEPTH || 6);
+const MAX_DEPTH = +(process.env.NEXT_PUBLIC_MAX_DEPTH || 5);
 
 /**
  * Send a GET-request to GitHub's REST API
@@ -53,6 +53,7 @@ export async function validateCredentials(token: string): Promise<CredentialStat
     const code = (await fetchFromGitHub(token, `https://api.github.com/user`)).status;
     switch (code) {
         case 200:
+        case 304:
             return "Ok";
         case 401:
             return "Invalid";
@@ -92,8 +93,8 @@ export async function breadthFirstSearchConnections(
     cache: Map<string, string[]> = new Map<string, string[]>(),
 ) {
     callback?.("Validating");
-    from = from.toLowerCase();
-    to = to.toLowerCase();
+    from = from.toLowerCase().trim();
+    to = to.toLowerCase().trim();
 
     const credentialsValidation = await validateCredentials(token);
     if (credentialsValidation !== "Ok") {
@@ -101,12 +102,12 @@ export async function breadthFirstSearchConnections(
         return [];
     }
 
-    if (!(await validateUsername(token, from))) {
+    if (!cache.has(from) && !(await validateUsername(token, from))) {
         callback?.("Validating", undefined, "User doesn't exist.");
         return [];
     }
 
-    if (!(await validateUsername(token, to))) {
+    if (!cache.has(to) && !(await validateUsername(token, to))) {
         callback?.("Validating", undefined, "Target doesn't exist.");
         return [];
     }
@@ -142,7 +143,6 @@ export async function breadthFirstSearchConnections(
             const found = neighbor === to;
             const newPath: MutualConnection[] = [...path, { login: neighbor, type: found ? "to" : "follower" }];
             if (found) return newPath;
-
             queue.push(newPath);
         }
     }

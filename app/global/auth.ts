@@ -6,6 +6,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         Github({
             clientId: process.env.OAUTH_ID || "???",
             clientSecret: process.env.OAUTH_SECRET || "???",
+            authorization: {
+                params: {
+                    scope: "read:user",
+                },
+            },
         }),
     ],
     secret: process.env.BETTER_AUTH_SECRET,
