@@ -3,7 +3,7 @@ export type MutualConnection = {
     type: "follower" | "from" | "to";
 };
 
-const MAX_DEPTH = +(process.env.NEXT_PUBLIC_MAX_DEPTH || 4);
+const MAX_DEPTH = +(process.env.NEXT_PUBLIC_MAX_DEPTH || 5);
 
 /**
  * Send a GET-request to GitHub's REST API
@@ -29,6 +29,10 @@ export async function fetchFromGitHub(token: string, api: string) {
  */
 async function getFollowers(token: string, login: string) {
     const result = await fetchFromGitHub(token, `https://api.github.com/users/${login}/followers?per_page=100`);
+    if (result.status === 403) {
+        console.warn(`Getting followers for ${login} is forbidden.`);
+        return [];
+    }
     if (!result.ok) {
         console.error(`Failed to get followers for '${login}' (${result.status}):`, result.statusText);
         return [];
@@ -47,6 +51,10 @@ async function getFollowers(token: string, login: string) {
  */
 async function getFollowing(token: string, login: string) {
     const result = await fetchFromGitHub(token, `https://api.github.com/users/${login}/following?per_page=100`);
+    if (result.status === 403) {
+        console.warn(`Getting following for ${login} is forbidden.`);
+        return [];
+    }
     if (!result.ok) {
         console.error(`Failed to get following for '${login}' (${result.status}):`, result.statusText);
         return [];
@@ -114,6 +122,15 @@ export async function searchConnections(
     from = from.toLowerCase().trim();
     to = to.toLowerCase().trim();
 
+    if (from.length <= 0) {
+        callback?.("Validating", undefined, "'from' is empty.");
+        return [];
+    }
+    if (to.length <= 0) {
+        callback?.("Validating", undefined, "'to' is empty.");
+        return [];
+    }
+
     const credentialsValidation = await validateCredentials(token);
     if (credentialsValidation !== "Ok") {
         callback?.("Validating", undefined, credentialsValidation);
@@ -145,8 +162,8 @@ export async function searchConnections(
 
     let count = 0;
 
-    const reconstruct = (startPath: MutualConnection[], endPath: MutualConnection[]): MutualConnection[] => {
-        console.log(`Start Path: ${startPath.map((con) => con.login).join(" -> ")}\nEnd Path: ${endPath.map((con) => con.login).join(" -> ")}`);
+    const reconstruct = (startPath: MutualConnection[], endPath: MutualConnection[], log: boolean = false): MutualConnection[] => {
+        if (log) console.log(`Start Path: ${startPath.map((con) => con.login).join(" -> ")}\nEnd Path: ${endPath.map((con) => con.login).join(" -> ")}`);
         return [...startPath, ...[...endPath].reverse().slice(1)];
     };
 
@@ -163,6 +180,8 @@ export async function searchConnections(
         const order = path.length;
         if (order > MAX_DEPTH) return;
 
+        const matches: MutualConnection[][] = [];
+
         const key = (inverted ? "end/" : "start/") + node.login;
         const neighbors = cache.get(key) ?? (inverted ? await getFollowing(token, node.login) : await getFollowers(token, node.login));
         cache.set(key, neighbors);
@@ -178,14 +197,17 @@ export async function searchConnections(
             currentVisited.set(neighbor, newPath);
 
             if (counterVisited.has(neighbor)) {
-                if (inverted) {
-                    return reconstruct(counterVisited.get(neighbor)!, newPath);
-                }
-                return reconstruct(newPath, counterVisited.get(neighbor)!);
+                matches.push(inverted ? reconstruct(counterVisited.get(neighbor)!, newPath) : reconstruct(newPath, counterVisited.get(neighbor)!));
+            } else {
+                queue.push(newPath);
             }
-
-            queue.push(newPath);
         }
+
+        if (matches.length > 0) {
+            return matches.reduce((current, next) => (current.length <= next.length ? current : next));
+        }
+
+        return undefined;
     };
 
     while (startQueue.length > 0 && endQueue.length > 0) {
