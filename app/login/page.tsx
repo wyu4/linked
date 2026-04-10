@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import LoginPage from "../components/pages/login";
-import { auth } from "../global/auth";
+import { auth } from "@/utils/auth";
+import { headers } from "next/headers";
 
 export default async () => {
-    const session = await auth();
-    if (session?.github) {
-        const token = session.github;
-        console.log(`${session.user?.name} is logging in with token [${token.slice(0, token.length / 3)}...]`);
+    const session = await auth.api.getSession({
+        headers: await headers(),
+    });
+    if (session) {
         redirect("/dashboard");
     }
     return <LoginPage />;

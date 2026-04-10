@@ -68,7 +68,7 @@ async function getFollowing(token: string, login: string) {
 /**
  * Status of an API call in text form.
  */
-type CredentialStatus = "RateLimited" | "Invalid" | "Ok";
+export type CredentialStatus = "RateLimited" | "Invalid" | "Ok";
 
 /**
  * Check if a given token is valid by test-calling a authenticated-only API
@@ -100,7 +100,7 @@ export async function validateUsername(token: string, login: string) {
     return (await fetchFromGitHub(token, `https://api.github.com/users/${login}`)).status !== 404;
 }
 
-export type SearchPhase = "Validating" | "Searching";
+export type SearchPhase = "Setup" | "Credentials" | "Validating" | "Searching";
 
 /**
  * Performs BI-Directional Breadth-First Search (BFS) on the user's follower tree
@@ -118,22 +118,22 @@ export async function searchConnections(
     callback?: (phase: SearchPhase, count?: number, error?: CredentialStatus | string) => void,
     cache: Map<string, string[]> = new Map<string, string[]>(),
 ) {
-    callback?.("Validating");
+    callback?.("Setup");
     from = from.toLowerCase().trim();
     to = to.toLowerCase().trim();
 
     if (from.length <= 0) {
-        callback?.("Validating", undefined, "'from' is empty.");
+        callback?.("Setup", undefined, "'from' is empty.");
         return [];
     }
     if (to.length <= 0) {
-        callback?.("Validating", undefined, "'to' is empty.");
+        callback?.("Setup", undefined, "'to' is empty.");
         return [];
     }
 
     const credentialsValidation = await validateCredentials(token);
     if (credentialsValidation !== "Ok") {
-        callback?.("Validating", undefined, credentialsValidation);
+        await callback?.("Credentials", undefined, credentialsValidation);
         return [];
     }
 

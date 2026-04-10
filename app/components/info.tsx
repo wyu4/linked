@@ -2,7 +2,7 @@
 
 import { forwardRef } from "react";
 import { LuInfo } from "react-icons/lu";
-import { DivProps } from "../global/global";
+import { DivProps } from "../../types/global";
 
 const InfoWidget = forwardRef<HTMLDivElement, DivProps & { icon?: boolean }>(({ className, icon = true, children, ...props }, ref) => {
     return (

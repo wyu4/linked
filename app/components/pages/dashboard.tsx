@@ -1,24 +1,45 @@
 "use client";
 import { FaArrowRightLong } from "react-icons/fa6";
 import { FaSearch } from "react-icons/fa";
-import { searchConnections } from "@/app/utils/search";
-import { useSession } from "next-auth/react";
+import { CredentialStatus, searchConnections, SearchPhase } from "@/utils/search";
 import { useEffect, useRef, useState } from "react";
+import { authClient } from "@/utils/auth-client";
+import { redirect, useRouter } from "next/navigation";
 
 type DashboardClientType = {
-    name?: string;
+    name: string;
+    token: string;
 };
 
-export default function DashboardClient({ name = "Unknown User" }: DashboardClientType) {
+export default function DashboardClient({ token }: DashboardClientType) {
     const [user, setUser] = useState("");
     const [target, setTarget] = useState("");
     const [searching, setSearching] = useState(false);
-    const session = useSession();
     const cache = useRef<Map<string, string[]>>(new Map<string, string[]>());
+    const router = useRouter();
+
+    const closeSession = async () => {
+        await authClient.signOut({
+            fetchOptions: {
+                onSuccess: () => {
+                    router.push("/login");
+                },
+            },
+        });
+    };
+
+    const handleError = async (phase: SearchPhase, error: string) => {
+        if (phase === "Credentials") {
+            const credentialError = error as CredentialStatus;
+            console.error(`Credential error: ${credentialError}`);
+            if (credentialError === "Invalid") {
+                await closeSession();
+            }
+        }
+    };
 
     useEffect(() => {
         if (!searching) return;
-        const token = session.data?.github;
 
         if (!token) {
             console.error("No token was found.");
@@ -31,10 +52,8 @@ export default function DashboardClient({ name = "Unknown User" }: DashboardClie
             token,
             user,
             target,
-            (phase, count, error) => {
-                if (error) {
-                    console.error(`Error while searching: ${error}`);
-                }
+            async (phase, count, error) => {
+                if (error) await handleError(phase, error);
             },
             cache.current,
         )
@@ -83,7 +102,6 @@ export default function DashboardClient({ name = "Unknown User" }: DashboardClie
                     <FaSearch />
                 </button>
             </div>
-            <canvas className="absolute z-1"></canvas>
         </div>
     );
 }
