@@ -1,8 +1,3 @@
-export type MutualConnection = {
-    login: string;
-    type: "follower" | "from" | "to";
-};
-
 const MAX_DEPTH = +(process.env.NEXT_PUBLIC_MAX_DEPTH || 5);
 
 /**
@@ -66,11 +61,6 @@ async function getFollowing(token: string, login: string) {
 }
 
 /**
- * Status of an API call in text form.
- */
-export type CredentialStatus = "RateLimited" | "Invalid" | "Ok";
-
-/**
  * Check if a given token is valid by test-calling a authenticated-only API
  * @param token Token to check
  * @returns Returns a string based on the status code of the test call
@@ -100,10 +90,8 @@ export async function validateUsername(token: string, login: string) {
     return (await fetchFromGitHub(token, `https://api.github.com/users/${login}`)).status !== 404;
 }
 
-export type SearchPhase = "Setup" | "Credentials" | "Validating" | "Searching";
-
 /**
- * Performs BI-Directional Breadth-First Search (BFS) on the user's follower tree
+ * Performs Bi-Directional Breadth-First Search (BFS) on the user's follower tree
  * @param token GitHub API Token
  * @param from First user
  * @param to Target user
@@ -115,43 +103,74 @@ export async function searchConnections(
     token: string,
     from: string,
     to: string,
-    callback?: (phase: SearchPhase, count?: number, error?: CredentialStatus | string) => void,
+    callback?: (data: SearchStream) => void,
     cache: Map<string, string[]> = new Map<string, string[]>(),
-) {
-    callback?.("Setup");
+): Promise<MutualConnection[]> {
+    let stream: SearchStream = {
+        phase: "Setup",
+        count: 0,
+        calls: 0,
+        ok: true,
+    };
+    callback?.(stream);
     from = from.toLowerCase().trim();
     to = to.toLowerCase().trim();
 
+    const streamError = async (error: string) => {
+        stream.ok = false;
+        stream.error = error;
+        await callback?.(stream);
+    };
+
     if (from.length <= 0) {
-        callback?.("Setup", undefined, "'from' is empty.");
-        return [];
+        await streamError("user is empty.");
+        return [] as MutualConnection[];
     }
     if (to.length <= 0) {
-        callback?.("Setup", undefined, "'to' is empty.");
-        return [];
+        await streamError("target is empty.");
+        return [] as MutualConnection[];
     }
+
+    stream.phase = "Credentials";
+    await callback?.(stream);
 
     const credentialsValidation = await validateCredentials(token);
+
+    stream.credentialStatus = credentialsValidation;
+    await callback?.(stream);
+
     if (credentialsValidation !== "Ok") {
-        await callback?.("Credentials", undefined, credentialsValidation);
-        return [];
+        await streamError(`Credential check failed: ${credentialsValidation}`);
+        return [] as MutualConnection[];
     }
 
-    if (!cache.has(from) && !(await validateUsername(token, from))) {
-        callback?.("Validating", undefined, "User doesn't exist.");
-        return [];
+    stream.phase = "Validating";
+    await callback?.(stream);
+
+    const cacheLookup = (user: string, type: "start" | "end") => {
+        return cache.get(type + "/" + user);
+    };
+
+    const cacheSet = (user: string, type: "start" | "end", neighbors: string[]) => {
+        return cache.set(type + "/" + user, neighbors);
+    };
+
+    if (!cacheLookup(from, "start") && !(await validateUsername(token, from))) {
+        await streamError("User doesn't exist.");
+        return [] as MutualConnection[];
     }
 
-    if (!cache.has(to) && !(await validateUsername(token, to))) {
-        callback?.("Validating", undefined, "Target doesn't exist.");
-        return [];
+    if (!cacheLookup(to, "end") && !(await validateUsername(token, to))) {
+        await streamError("Target doesn't exist.");
+        return [] as MutualConnection[];
     }
 
     if (from === to) {
         return [{ login: to, type: "from" } as MutualConnection];
     }
 
-    callback?.("Searching");
+    stream.phase = "Searching";
+    await callback?.(stream);
 
     const startQueue: MutualConnection[][] = [[{ login: from, type: "from" }]];
     const startVisited = new Map<string, MutualConnection[]>();
@@ -159,8 +178,6 @@ export async function searchConnections(
 
     const endQueue: MutualConnection[][] = [[{ login: to, type: "to" }]];
     const endVisited = new Map<string, MutualConnection[]>();
-
-    let count = 0;
 
     const reconstruct = (startPath: MutualConnection[], endPath: MutualConnection[], log: boolean = false): MutualConnection[] => {
         if (log) console.log(`Start Path: ${startPath.map((con) => con.login).join(" -> ")}\nEnd Path: ${endPath.map((con) => con.login).join(" -> ")}`);
@@ -172,7 +189,7 @@ export async function searchConnections(
         currentVisited: Map<string, MutualConnection[]>,
         counterVisited: Map<string, MutualConnection[]>,
         inverted: boolean,
-    ) => {
+    ): Promise<MutualConnection[] | undefined> => {
         const path = queue.shift()!;
         if (path.length <= 0) return;
         const node = path[path.length - 1];
@@ -182,16 +199,20 @@ export async function searchConnections(
 
         const matches: MutualConnection[][] = [];
 
-        const key = (inverted ? "end/" : "start/") + node.login;
-        const neighbors = cache.get(key) ?? (inverted ? await getFollowing(token, node.login) : await getFollowers(token, node.login));
-        cache.set(key, neighbors);
+        const key = inverted ? "end" : "start";
+        let neighbors = cacheLookup(node.login, key);
+        if (!neighbors) {
+            stream.calls++;
+            await callback?.(stream);
+            neighbors = inverted ? await getFollowing(token, node.login) : await getFollowers(token, node.login);
+        }
+        cacheSet(node.login, key, neighbors);
 
         for (const neighbor of neighbors) {
             if (currentVisited.has(neighbor)) continue;
 
-            count++;
-
-            callback?.("Searching", count);
+            stream.count++;
+            await callback?.(stream);
 
             const newPath: MutualConnection[] = [...path, { login: neighbor, type: "follower" }];
             currentVisited.set(neighbor, newPath);
@@ -219,4 +240,13 @@ export async function searchConnections(
     }
 
     return [];
+}
+
+/**
+ * Removes invalid characters in a GitHub username.
+ * @param login Initial username
+ * @returns Filtered username
+ */
+export function filterUsername(login: string) {
+    return login.replace(/[^a-zA-Z0-9-]/g, "").replace(/(.*)-(.*)-(.*)/g, "$1-$2$3");
 }

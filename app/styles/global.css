@@ -9,6 +9,7 @@
     --color-focus: rgba(18, 29, 47);
     --color-link: rgba(40, 131, 248);
     --color-font: rgba(240, 246, 252);
+    --color-subtitle: rgba(145, 152, 161);
     --color-success: rgba(35, 134, 54);
 }
 
@@ -23,7 +24,7 @@ button,
 a,
 input {
     font-family: "Funnel Sans", sans-serif;
-    margin-block: 0;
+    /* margin-block: 0; */
     @apply text-font;
 }
 
@@ -37,8 +38,16 @@ button {
     @apply cursor-pointer brightness-100 hover:brightness-125 active:brightness-90 transition duration-200;
 }
 
+h1 {
+    @apply text-3xl font-bold;
+}
+
 h2 {
-    @apply text-2xl font-bold;
+    @apply text-lg font-bold;
+}
+
+.subtitle {
+    @apply text-subtitle;
 }
 
 .code {
