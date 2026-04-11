@@ -211,7 +211,7 @@ export async function searchConnections(
         for (const neighbor of neighbors) {
             if (currentVisited.has(neighbor)) continue;
 
-            stream.count++;
+            stream.count = stream.count + 1;
             await callback?.(stream);
 
             const newPath: MutualConnection[] = [...path, { login: neighbor, type: "follower" }];

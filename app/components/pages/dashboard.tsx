@@ -61,25 +61,23 @@ export default function DashboardClient({ token, username }: DashboardClientType
             return;
         }
 
-        setTimeout(() => setSearching(false), 1000);
-
-        // searchConnections(
-        //     token,
-        //     user,
-        //     target,
-        //     async (data) => {
-        //         if (data.error) await handleError(data);
-        //         setStream(data);
-        //     },
-        //     cache.current,
-        // )
-        //     .then((data) => {
-        //         console.log(data.map((connection) => connection.login).join(" => "));
-        //     })
-        //     .finally(() => {
-        //         setSearching(false);
-        //         console.log("Searched.");
-        //     });
+        searchConnections(
+            token,
+            user,
+            target,
+            async (data) => {
+                if (data.error) await handleError(data);
+                setStream({ ...data });
+            },
+            cache.current,
+        )
+            .then((data) => {
+                console.log(data.map((connection) => connection.login).join(" => "));
+            })
+            .finally(() => {
+                setSearching(false);
+                console.log("Searched.");
+            });
     }, [searching, user, target]);
 
     const handleSearch = (): void | FormError => {
@@ -108,7 +106,12 @@ export default function DashboardClient({ token, username }: DashboardClientType
             >
                 Test button
             </button> */}
-            {searching && <div className="fixed top-0 left-0 right-0 bottom-0 flex flex-col justify-center items-center"></div>}
+            {searching && (
+                <div className="fixed top-0 left-0 right-0 bottom-0 flex flex-col justify-center items-center bg-[#00000055]">
+                    <h1>{`Node count: ${stream?.count}`}</h1>
+                    <h1>{`API Calls: ${stream?.calls}`}</h1>
+                </div>
+            )}
         </div>
     );
 }
