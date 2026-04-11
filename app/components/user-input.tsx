@@ -14,6 +14,10 @@ const UserInput = forwardRef<HTMLInputElement, InputProps & { displayUser?: stri
             type="text"
             placeholder={`i.e. ${displayUser}`}
             onChange={filter}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
             {...props}
         />
     );

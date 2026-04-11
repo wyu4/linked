@@ -249,7 +249,7 @@ export async function searchConnections(
  */
 export function filterUsername(login: string) {
     return login
-        .trim()
         .replace(/[^a-zA-Z0-9-]/g, "")
-        .replace(/-{2,}/g, "-");
+        .replace(/-{2,}/g, "-")
+        .toLowerCase();
 }

@@ -4,7 +4,7 @@ export const auth = betterAuth({
     appName: "linked",
     baseURL: process.env.BETTER_AUTH_URL as string,
     basePath: "api/auth",
-    trustedOrigins: ["https://*.wyu.app", "http://localhost:3000"],
+    trustedOrigins: ["https://*.wyu.app", "http://localhost:3000", "http://192.168.2.60:3000"],
     onAPIError: {
         errorURL: "/login",
         throw: true,
