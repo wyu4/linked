@@ -148,7 +148,7 @@ export function StartupForm({ displayUser = "wyu4", searching, user, setUser, ta
     return (
         <div
             ref={container}
-            className={`fixed opacity-0 overflow-hidden bg-foreground flex flex-col justify-center items-center border border-border rounded-2xl p-5`}
+            className={`fixed z-10 opacity-0 overflow-hidden bg-foreground flex flex-col justify-center items-center border border-border rounded-2xl p-5`}
             style={{ gap: `var(--form-gap)`, "--form-gap": GAP } as React.CSSProperties}
         >
             {extraIsMounted && (

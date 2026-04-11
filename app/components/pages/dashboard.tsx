@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/utils/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { StartupForm } from "../user-input";
+import Surface from "../nodes/surface";
 
 type DashboardClientType = {
     token: string;
@@ -90,7 +91,8 @@ export default function DashboardClient({ token, username }: DashboardClientType
     };
 
     return (
-        <div className="absolute bg-background h-full w-full overflow-hidden">
+        <div className="absolute bg-background h-full w-full flex flex-col items-center justify-center overflow-hidden">
+            <Surface />
             <StartupForm
                 searching={searching}
                 displayUser={username}
@@ -100,18 +102,6 @@ export default function DashboardClient({ token, username }: DashboardClientType
                 setTarget={(value) => updateParam("target", filterUsername(value))}
                 onSubmit={handleSearch}
             />
-            {/* <button
-                className="absolute bottom-10 bg-link w-full flex flex-row justify-center items-center py-2.5 rounded-xl"
-                onClick={() => setSearching((value) => !value)}
-            >
-                Test button
-            </button> */}
-            {searching && (
-                <div className="fixed top-0 left-0 right-0 bottom-0 flex flex-col justify-center items-center bg-[#00000055]">
-                    <h1>{`Node count: ${stream?.count}`}</h1>
-                    <h1>{`API Calls: ${stream?.calls}`}</h1>
-                </div>
-            )}
         </div>
     );
 }
