@@ -24,7 +24,6 @@ button,
 a,
 input {
     font-family: "Funnel Sans", sans-serif;
-    /* margin-block: 0; */
     @apply text-font;
 }
 
