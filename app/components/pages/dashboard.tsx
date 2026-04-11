@@ -8,6 +8,7 @@ import { redirect, useRouter, useSearchParams } from "next/navigation";
 import UserInput from "../user-input";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
+import { SplitText } from "gsap/SplitText";
 
 type DashboardClientType = {
     token: string;
@@ -17,28 +18,34 @@ type DashboardClientType = {
 type FormError = "User" | "Target" | "Both";
 
 type FormType = {
-    defaultUser?: string;
+    displayUser?: string;
+    user: string;
     setUser?: (user: string) => void;
+    target: string;
     setTarget?: (target: string) => void;
     onSubmit?: () => void | FormError;
 };
 
+/**
+ * A cooldown in milliseconds. This prevents a bug where the URL parameters don't update in time when the user presses on submit.
+ */
+const COOLDOWN_AFTER_PARAM_UPDATE = 200;
+
 export default function DashboardClient({ token, username }: DashboardClientType) {
-    const [user, setUser] = useState("");
-    const [target, setTarget] = useState("");
+    const searchParams = useSearchParams();
+    const user = searchParams.get("user") ?? "";
+    const target = searchParams.get("target") ?? "";
     const [searching, setSearching] = useState(false);
     const [stream, setStream] = useState<SearchStream | undefined>(undefined);
     const cache = useRef<Map<string, string[]>>(new Map<string, string[]>());
+    const lastParamUpdate = useRef<number>(Date.now());
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const { replace } = useRouter();
 
-    const onUserUpdate = (login: string) => {
-        setUser(filterUsername(login));
-    };
-
-    const onTargetUpdate = (login: string) => {
-        setTarget(filterUsername(login));
+    const updateParam = (key: "user" | "target", value: string) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set(key, value);
+        router.replace(`/dashboard?${params.toString()}`, { scroll: false });
+        lastParamUpdate.current = Date.now();
     };
 
     const closeSession = async () => {
@@ -91,26 +98,45 @@ export default function DashboardClient({ token, username }: DashboardClientType
     }, [searching, user, target]);
 
     const handleSearch = (): void | FormError => {
+        if (Date.now() - lastParamUpdate.current < COOLDOWN_AFTER_PARAM_UPDATE) return;
         if (searching) return;
         if (user === "" && target === "") return "Both";
         if (user === "") return "User";
         if (target === "") return "Target";
-        setSearching(true);
+        console.log(`${user} -> ${target}`);
     };
 
     return (
         <div className="absolute bg-background h-full w-full overflow-hidden">
-            <StartupForm defaultUser={username} setUser={onUserUpdate} setTarget={onTargetUpdate} onSubmit={handleSearch} />
+            <StartupForm
+                displayUser={username}
+                user={user}
+                setUser={(value) => {
+                    updateParam("user", filterUsername(value));
+                }}
+                target={target}
+                setTarget={(value) => {
+                    updateParam("target", filterUsername(value));
+                }}
+                onSubmit={handleSearch}
+            />
         </div>
     );
 }
 
-function StartupForm({ defaultUser = "wyu4", setUser, setTarget, onSubmit }: FormType) {
+function StartupForm({ displayUser = "wyu4", user, setUser, target, setTarget, onSubmit }: FormType) {
     const [userInvalid, setUserInvalid] = useState(false);
     const [targetInvalid, setTargetInvalid] = useState(false);
+    const [collapsed, setCollapsed] = useState(user !== "" && target !== "");
+    const container = useRef<HTMLDivElement>(null);
+    const GAP = "0.625rem";
+    const [extraIsMounted, setExtraIsMounted] = useState(!collapsed);
 
     const handleSubmit = () => {
-        const error = onSubmit?.();
+        const error = onSubmit?.() ?? undefined;
+        if (user !== "" && target !== "") {
+            setCollapsed(true);
+        }
         switch (error) {
             case "User":
             case "Both":
@@ -118,15 +144,114 @@ function StartupForm({ defaultUser = "wyu4", setUser, setTarget, onSubmit }: For
             case "Target":
             case "Both":
                 setTargetInvalid(true);
+                break;
+            case undefined:
+                setCollapsed(true);
         }
     };
 
+    const PRESET_POSITIONS = {
+        containerDefault: {
+            top: "50%",
+            left: "50%",
+            translateX: "-50%",
+            translateY: "-50%",
+        } as gsap.TweenVars,
+        containerCollapsed: {
+            top: "1rem",
+            left: "50%",
+            translateX: "-50%",
+            translateY: 0,
+        } as gsap.TweenVars,
+    };
+
+    useGSAP(
+        () => {
+            gsap.set(container.current, collapsed ? PRESET_POSITIONS.containerCollapsed : PRESET_POSITIONS.containerDefault);
+            gsap.set(
+                ".extra-container",
+                collapsed
+                    ? {
+                          opacity: 0,
+                          position: "absolute",
+                      }
+                    : {
+                          opacity: 1,
+                          position: "relative",
+                      },
+            );
+            gsap.fromTo(container.current, { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" });
+        },
+        {
+            dependencies: [],
+            scope: container,
+        },
+    );
+
+    useGSAP(
+        () => {
+            if (!collapsed) return;
+
+            const extra = new SplitText(".extra", {
+                type: "words",
+            });
+
+            gsap.timeline()
+                .to(extra.words, {
+                    duration: 0.5,
+                    opacity: 0,
+                    translateY: "-1rem",
+                    stagger: 0.02,
+                    ease: "power2.inOut",
+                })
+                .to(
+                    ".extra-container",
+                    {
+                        duration: 0.5,
+                        delay: 0.25,
+                        pointerEvents: "none",
+                        height: 0,
+                        marginBottom: "-" + GAP,
+                        ease: "sine.inOut",
+                        onComplete: () => {
+                            setExtraIsMounted(false);
+                        },
+                    },
+                    "<",
+                )
+                .to(
+                    container.current,
+                    {
+                        ...PRESET_POSITIONS.containerCollapsed,
+                        duration: 0.5,
+                        delay: 0.25,
+                        ease: "power2.inOut",
+                    },
+                    "<",
+                );
+
+            return () => extra.revert();
+        },
+        {
+            dependencies: [collapsed],
+            scope: container,
+        },
+    );
+
     return (
-        <div className="fixed bg-foreground top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col justify-center items-center border border-border rounded-2xl p-5 gap-2.5">
-            <h1>Get Started</h1>
-            <p className="subtitle mb-5 text-center">Create a path between any two GitHub users</p>
+        <div
+            ref={container}
+            className={`fixed opacity-0 overflow-hidden bg-foreground flex flex-col justify-center items-center border border-border rounded-2xl p-5 gap-[${GAP}]`}
+        >
+            {extraIsMounted && (
+                <div className="extra-container flex flex-col justify-center items-center gap-inherit mb-5">
+                    <h1 className="extra">Get Started</h1>
+                    <p className="extra subtitle text-center">Create a path between any two GitHub users</p>
+                </div>
+            )}
+
             <div className="flex flex-col sm:flex-row gap-2.5 w-full justify-center items-center">
-                <UserForm defaultUser={defaultUser} isInvalid={userInvalid} setUser={setUser} setInvalid={setUserInvalid} />
+                <UserForm displayUser={displayUser} isInvalid={userInvalid} setUser={setUser} setInvalid={setUserInvalid} />
                 <UserForm label="Target" isInvalid={targetInvalid} setUser={setTarget} setInvalid={setTargetInvalid} />
             </div>
             <button className="bg-link w-full flex flex-row justify-center items-center gap-2 py-2.5 rounded-xl" onClick={handleSubmit}>
@@ -138,15 +263,16 @@ function StartupForm({ defaultUser = "wyu4", setUser, setTarget, onSubmit }: For
 }
 
 type UserFormType = {
-    defaultUser?: string;
+    displayUser?: string;
     label?: string;
     isInvalid?: boolean;
     setUser?: (login: string) => void | Dispatch<SetStateAction<string>>;
     setInvalid?: (value: boolean) => void | Dispatch<SetStateAction<boolean>>;
 };
 
-function UserForm({ label = "User", isInvalid, setInvalid, setUser, defaultUser }: UserFormType) {
+function UserForm({ label = "User", isInvalid, setInvalid, setUser, displayUser }: UserFormType) {
     const container = useRef<HTMLDivElement>(null);
+    const param = useSearchParams().get(label.toLowerCase());
 
     useGSAP(
         () => {
@@ -188,7 +314,12 @@ function UserForm({ label = "User", isInvalid, setInvalid, setUser, defaultUser 
     return (
         <div ref={container} className="flex flex-col gap-1 w-full justify-center items-center">
             <h2 className="animated w-full">{label}</h2>
-            <UserInput className="animated w-full sm:w-[33vw] max-w-100 min-w-50" defaultUser={defaultUser} onChange={(e) => setUser?.(e.target.value)} />
+            <UserInput
+                className="animated w-full sm:w-[33vw] max-w-100 min-w-50"
+                displayUser={displayUser}
+                defaultValue={filterUsername(param ?? "")}
+                onChange={(e) => setUser?.(e.target.value)}
+            />
         </div>
     );
 }
