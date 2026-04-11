@@ -61,23 +61,25 @@ export default function DashboardClient({ token, username }: DashboardClientType
             return;
         }
 
-        searchConnections(
-            token,
-            user,
-            target,
-            async (data) => {
-                if (data.error) await handleError(data);
-                setStream(data);
-            },
-            cache.current,
-        )
-            .then((data) => {
-                console.log(data.map((connection) => connection.login).join(" => "));
-            })
-            .finally(() => {
-                setSearching(false);
-                console.log("Searched.");
-            });
+        setTimeout(() => setSearching(false), 1000);
+
+        // searchConnections(
+        //     token,
+        //     user,
+        //     target,
+        //     async (data) => {
+        //         if (data.error) await handleError(data);
+        //         setStream(data);
+        //     },
+        //     cache.current,
+        // )
+        //     .then((data) => {
+        //         console.log(data.map((connection) => connection.login).join(" => "));
+        //     })
+        //     .finally(() => {
+        //         setSearching(false);
+        //         console.log("Searched.");
+        //     });
     }, [searching, user, target]);
 
     const handleSearch = (): void | FormError => {
