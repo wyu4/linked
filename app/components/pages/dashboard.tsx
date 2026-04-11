@@ -15,7 +15,7 @@ type DashboardClientType = {
     username?: string;
 };
 
-type FormError = "User" | "Target" | "Both";
+type FormError = "User" | "Target" | "Both" | "TooFast";
 
 type FormType = {
     displayUser?: string;
@@ -98,7 +98,7 @@ export default function DashboardClient({ token, username }: DashboardClientType
     }, [searching, user, target]);
 
     const handleSearch = (): void | FormError => {
-        if (Date.now() - lastParamUpdate.current < COOLDOWN_AFTER_PARAM_UPDATE) return;
+        if (Date.now() - lastParamUpdate.current < COOLDOWN_AFTER_PARAM_UPDATE) return "TooFast";
         if (searching) return;
         if (user === "" && target === "") return "Both";
         if (user === "") return "User";
@@ -144,6 +144,9 @@ function StartupForm({ displayUser = "wyu4", user, setUser, target, setTarget, o
             case "Target":
             case "Both":
                 setTargetInvalid(true);
+                break;
+            case "TooFast":
+                console.warn("Slow down!");
                 break;
             case undefined:
                 setCollapsed(true);
