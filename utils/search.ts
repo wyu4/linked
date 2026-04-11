@@ -248,5 +248,8 @@ export async function searchConnections(
  * @returns Filtered username
  */
 export function filterUsername(login: string) {
-    return login.replace(/[^a-zA-Z0-9-]/g, "").replace(/(.*)-(.*)-(.*)/g, "$1-$2$3");
+    return login
+        .trim()
+        .replace(/[^a-zA-Z0-9-]/g, "")
+        .replace(/-{2,}/g, "-");
 }
