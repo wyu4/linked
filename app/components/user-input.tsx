@@ -15,7 +15,7 @@ const UserInput = forwardRef<HTMLInputElement, InputProps & { displayUser?: stri
     return (
         <input
             ref={ref}
-            className={"code border border-[#00000000] ring-2 ring-border focus:ring-link rounded-xl text-lg outline-hidden px-3 py-1.5 " + className}
+            className={"code border border-[#00000000] ring-2 ring-border focus:ring-link rounded-xl text-lg outline-hidden px-3 py-1.5 shrink-0" + className}
             type="text"
             placeholder={`i.e. ${displayUser}`}
             onChange={filter}
@@ -220,7 +220,7 @@ function UserForm({ label = "User", isInvalid, setInvalid, setUser, displayUser 
         <div ref={container} className="flex flex-col gap-1 w-full justify-center items-center">
             <h2 className="animated w-full">{label}</h2>
             <UserInput
-                className="animated w-full sm:w-[33vw] max-w-100 min-w-50"
+                className="animated w-full sm:w-[40vw] max-w-100 min-w-[80vw] sm:min-w-60"
                 displayUser={displayUser}
                 defaultValue={filterUsername(param ?? "")}
                 onChange={(e) => setUser?.(e.target.value)}
@@ -302,6 +302,7 @@ function SearchIcon({ searching }: { searching: boolean }) {
     const LINE_X = CIRCLE_X + RADIUS - THICKNESS;
     const LINE_X_SEARCHING = MID - MID * Math.sin(Math.PI / 4) + THICKNESS;
 
+    const container = useRef<SVGSVGElement>(null);
     const circleRef = useRef<SVGCircleElement>(null);
     const lineRef = useRef<SVGLineElement>(null);
     const mounted = useRef(false);
@@ -311,6 +312,7 @@ function SearchIcon({ searching }: { searching: boolean }) {
             mounted.current = true;
             return;
         }
+        gsap.to(container.current, { rotate: searching ? 360 : 0, delay: 0.1, duration: 0.5, ease: "sine.out" });
         gsap.fromTo(
             circleRef.current,
             { attr: !searching ? { cx: MID, cy: MID, r: MID - THICKNESS } : { cx: CIRCLE_X, cy: CIRCLE_X, r: RADIUS } },
@@ -348,7 +350,7 @@ function SearchIcon({ searching }: { searching: boolean }) {
     }, [searching]);
 
     return (
-        <svg width={WIDTH} height={WIDTH}>
+        <svg ref={container} width={WIDTH} height={WIDTH}>
             <circle ref={circleRef} cx={CIRCLE_X} cy={CIRCLE_X} r={RADIUS} stroke={COLOR} strokeWidth={THICKNESS} fill="none" />
             <line ref={lineRef} x1={LINE_X} y1={LINE_X} x2={WIDTH - THICKNESS} y2={WIDTH - THICKNESS} stroke={COLOR} strokeWidth={THICKNESS} />
         </svg>
