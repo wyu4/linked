@@ -50,9 +50,16 @@ export default function Surface() {
                 const centerX = (bounds.width - size.w) / 2;
                 const centerY = (bounds.height - size.h) / 2;
                 gsap.set(surface.current, { x: centerX, y: centerY });
+
+                const handleFocus = () => {
+                    if (!document.activeElement || document.activeElement.className.includes("surface")) return;
+                    (document.activeElement as HTMLElement).blur();
+                };
+
                 Draggable.create(surface.current, {
                     bounds: container.current,
                     inertia: true,
+                    onPress: handleFocus,
                 });
                 mounted.current = true;
             }
@@ -66,7 +73,7 @@ export default function Surface() {
             <div ref={scaledSurface} className="absolute origin-center flex justify-center items-center" style={{ width: size.w, height: size.h }}>
                 <div
                     ref={surface}
-                    className="w-full h-full origin-center"
+                    className="surface w-full h-full origin-center"
                     style={{
                         backgroundSize: `${size.max * 0.05}px ${size.max * 0.05}px`,
                         backgroundImage: `radial-gradient(#212830 ${size.max * 0.002}px,transparent 1px)`,
