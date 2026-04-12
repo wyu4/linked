@@ -8,7 +8,7 @@
         "start": "next start",
         "lint": "eslint",
         "refresh": "rmdir /s /q .next & rmdir /s /q node_modules & npm install",
-        "dev:refresh": "npm run clear & npm run dev",
+        "dev:refresh": "npm run refresh & npm run dev",
         "generate": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
     },
     "dependencies": {

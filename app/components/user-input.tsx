@@ -15,7 +15,7 @@ const UserInput = forwardRef<HTMLInputElement, InputProps & { displayUser?: stri
     return (
         <input
             ref={ref}
-            className={"code border border-[#00000000] ring-2 ring-border focus:ring-link rounded-xl text-lg outline-hidden px-3 py-1.5 shrink-0" + className}
+            className={"code border border-[#00000000] ring-2 ring-border focus:ring-link rounded-xl text-lg outline-hidden px-3 py-1.5 shrink-0 " + className}
             type="text"
             placeholder={`i.e. ${displayUser}`}
             onChange={filter}
@@ -203,12 +203,11 @@ function UserForm({ label = "User", isInvalid, setInvalid, setUser, displayUser 
                         y: 0,
                         duration: 0.1,
                         ease: "sine.inOut",
-                        onComplete: () => {
-                            setInvalid?.(false);
-                        },
                     });
                 },
             });
+            const id = setTimeout(() => setInvalid?.(false), 0.2);
+            return () => clearTimeout(id);
         },
         {
             dependencies: [isInvalid],
