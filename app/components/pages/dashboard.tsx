@@ -15,6 +15,7 @@ type DashboardClientType = {
  * A cooldown in milliseconds. This prevents a bug where the URL parameters don't update in time when the user presses on submit.
  */
 const COOLDOWN_AFTER_PARAM_UPDATE = 200;
+const RENDER_TEST_BUTTON = false;
 
 export default function DashboardClient({ token, username }: DashboardClientType) {
     const searchParams = useSearchParams();
@@ -62,6 +63,7 @@ export default function DashboardClient({ token, username }: DashboardClientType
             return;
         }
 
+        if (RENDER_TEST_BUTTON) return;
         searchConnections(
             token,
             user,
@@ -102,6 +104,14 @@ export default function DashboardClient({ token, username }: DashboardClientType
                 setTarget={(value) => updateParam("target", filterUsername(value))}
                 onSubmit={handleSearch}
             />
+            {RENDER_TEST_BUTTON && (
+                <button
+                    className="absolute z-100 bottom-10 bg-link w-full flex flex-row justify-center items-center py-2.5 rounded-xl"
+                    onClick={() => setSearching((value) => !value)}
+                >
+                    Test button
+                </button>
+            )}
         </div>
     );
 }

@@ -300,6 +300,7 @@ function SearchIcon({ searching }: { searching: boolean }) {
     const CIRCLE_X = RADIUS + THICKNESS;
     const LINE_X = CIRCLE_X + RADIUS - THICKNESS;
     const LINE_X_SEARCHING = MID - MID * Math.sin(Math.PI / 4) + THICKNESS;
+    const ANIMATION_TIME = 0.25;
 
     const container = useRef<SVGSVGElement>(null);
     const circleRef = useRef<SVGCircleElement>(null);
@@ -311,13 +312,13 @@ function SearchIcon({ searching }: { searching: boolean }) {
             mounted.current = true;
             return;
         }
-        gsap.to(container.current, { rotate: searching ? 360 : 0, delay: 0.1, duration: 0.5, ease: "sine.out" });
+        gsap.to(container.current, { rotate: searching ? 360 : 0, delay: ANIMATION_TIME / 2, duration: ANIMATION_TIME, ease: "sine.out" });
         gsap.fromTo(
             circleRef.current,
             { attr: !searching ? { cx: MID, cy: MID, r: MID - THICKNESS } : { cx: CIRCLE_X, cy: CIRCLE_X, r: RADIUS } },
             {
                 attr: searching ? { cx: MID, cy: MID, r: MID - THICKNESS } : { cx: CIRCLE_X, cy: CIRCLE_X, r: RADIUS },
-                duration: 0.25,
+                duration: ANIMATION_TIME,
                 ease: "sine.inOut",
             },
         );
@@ -342,7 +343,7 @@ function SearchIcon({ searching }: { searching: boolean }) {
                           y2: WIDTH - LINE_X_SEARCHING,
                       }
                     : { x1: LINE_X, y1: LINE_X, x2: WIDTH - THICKNESS, y2: WIDTH - THICKNESS },
-                duration: 0.25,
+                duration: ANIMATION_TIME,
                 ease: "sine.inOut",
             },
         );
