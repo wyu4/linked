@@ -30,10 +30,18 @@ const Surface = ({ className, ...props }: DivPropsNoChildren) => {
     const [size, setSize] = useState<Bounds>(BOUNDS_ZERO);
     const [zoom, setZoom] = useState(ZOOM_MIN);
     const zoomPosition = useRef<Bounds>(BOUNDS_ZERO);
+    const pinchDistance = useRef<number>(undefined);
+
+    const isSurfaceTarget = (target: EventTarget | Element | null | undefined) => {
+        if (!target || !container.current) return false;
+        const el = target as HTMLElement;
+        return el.classList.contains("surface") || el === surface.current;
+    };
 
     useLayoutEffect(() => {
         if (!container.current) return;
 
+        // Sizing
         const sizeObserver = new ResizeObserver((entries) => {
             for (let entry of entries) {
                 const x = entry.contentRect.width;
@@ -43,22 +51,63 @@ const Surface = ({ className, ...props }: DivPropsNoChildren) => {
         });
         sizeObserver.observe(container.current);
 
-        const updateScale = (deltaScale: number) => {
+        // Zooming
+        const updateZoom = (deltaScale: number) => {
             setZoom((prev) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, prev + deltaScale)));
         };
 
         const onWheel = (e: WheelEvent) => {
+            if (!isSurfaceTarget(e.target)) return;
             e.preventDefault();
             zoomPosition.current.x = e.clientX;
             zoomPosition.current.y = e.clientY;
-            updateScale(-e.deltaY * ZOOM_INTENSITY);
+            updateZoom(-e.deltaY * ZOOM_INTENSITY);
+        };
+        window.addEventListener("wheel", onWheel, { passive: false });
+
+        // Zooming but for touch screen
+        const getDistanceBetweenTouches = (touches: TouchList) => {
+            return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
         };
 
-        window.addEventListener("wheel", onWheel, { passive: false });
+        const onTouchStart = (e: TouchEvent) => {
+            if (e.touches.length === 2) {
+                pinchDistance.current = getDistanceBetweenTouches(e.touches);
+            }
+        };
+
+        const onTouchMove = (e: TouchEvent) => {
+            if (e.touches.length != 2 || !pinchDistance.current) return;
+            e.preventDefault();
+
+            const touches = e.touches;
+
+            const newDistance = getDistanceBetweenTouches(touches);
+            const delta = newDistance - pinchDistance.current;
+            pinchDistance.current = newDistance;
+
+            zoomPosition.current.x = (touches[0].clientX + touches[1].clientX) / 2;
+            zoomPosition.current.y = (touches[0].clientY + touches[1].clientY) / 2;
+
+            updateZoom(delta * ZOOM_INTENSITY * 3); // slightly higher multiplier for feel
+        };
+
+        const onTouchEnd = (e: TouchEvent) => {
+            if (e.touches.length < 2) {
+                pinchDistance.current = undefined;
+            }
+        };
+
+        window.addEventListener("touchstart", onTouchStart, { passive: false });
+        window.addEventListener("touchmove", onTouchMove, { passive: false });
+        window.addEventListener("touchend", onTouchEnd);
 
         return () => {
             sizeObserver.disconnect();
             window.removeEventListener("wheel", onWheel);
+            window.removeEventListener("touchstart", onTouchStart);
+            window.removeEventListener("touchmove", onTouchMove);
+            window.removeEventListener("touchend", onTouchEnd);
         };
     }, []);
 
@@ -73,8 +122,9 @@ const Surface = ({ className, ...props }: DivPropsNoChildren) => {
 
             if (!mounted.current.drag) {
                 const handleFocus = () => {
-                    if (!document.activeElement || document.activeElement.className.includes("surface")) return;
-                    (document.activeElement as HTMLElement).blur();
+                    const target = document.activeElement;
+                    if (!isSurfaceTarget(target)) return;
+                    (target as HTMLElement).blur();
                 };
 
                 Draggable.create(surface.current, {
