@@ -1,7 +1,8 @@
+import { DivPropsNoChildren } from "@/types/global";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { Draggable, InertiaPlugin } from "gsap/all";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 type SurfaceType = {
     data: MutualConnection[];
@@ -22,7 +23,7 @@ type Mounted = {
     scale: boolean;
 };
 
-export default function Surface() {
+const Surface = ({ className, ...props }: DivPropsNoChildren) => {
     const container = useRef<HTMLDivElement>(null);
     const surface = useRef<HTMLDivElement>(null);
     const scaledSurface = useRef<HTMLDivElement>(null);
@@ -31,13 +32,16 @@ export default function Surface() {
     const zoomPosition = useRef<Bounds>(BOUNDS_ZERO);
 
     useLayoutEffect(() => {
-        const updateMinWidth = () => {
-            const x = window.innerWidth;
-            const y = window.innerHeight;
-            setSize({ x, y, max: Math.max(x, y) });
-        };
-        updateMinWidth();
-        window.addEventListener("resize", updateMinWidth);
+        if (!container.current) return;
+
+        const sizeObserver = new ResizeObserver((entries) => {
+            for (let entry of entries) {
+                const x = entry.contentRect.width;
+                const y = entry.contentRect.height;
+                setSize({ x, y, max: Math.max(x, y) });
+            }
+        });
+        sizeObserver.observe(container.current);
 
         const updateScale = (deltaScale: number) => {
             setZoom((prev) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, prev + deltaScale)));
@@ -53,7 +57,7 @@ export default function Surface() {
         window.addEventListener("wheel", onWheel, { passive: false });
 
         return () => {
-            window.removeEventListener("resize", updateMinWidth);
+            sizeObserver.disconnect();
             window.removeEventListener("wheel", onWheel);
         };
     }, []);
@@ -67,14 +71,7 @@ export default function Surface() {
         () => {
             if (!container.current || !surface.current || (size.max ?? 0) <= 0) return;
 
-            if (mounted.current.drag) {
-            } else {
-                const bounds = container.current.getBoundingClientRect();
-                const centerX = (bounds.width - size.x / ZOOM_MIN) / 2;
-                const centerY = (bounds.height - size.y / ZOOM_MIN) / 2;
-                // gsap.set(surface.current, { x: centerX, y: centerY });
-                gsap.set(scaledSurface.current, { x: centerX, y: centerY });
-
+            if (!mounted.current.drag) {
                 const handleFocus = () => {
                     if (!document.activeElement || document.activeElement.className.includes("surface")) return;
                     (document.activeElement as HTMLElement).blur();
@@ -93,6 +90,7 @@ export default function Surface() {
 
     useGSAP(() => {
         if (!container.current || !scaledSurface.current || !surface.current || (size.max ?? 0) <= 0) return;
+
         if (!mounted.current.scale && container.current) {
             gsap.set(scaledSurface.current, { scale: zoom });
             mounted.current.scale = true;
@@ -128,17 +126,23 @@ export default function Surface() {
     }, [zoom, size]);
 
     return (
-        <div ref={container} className="relative z-1 w-full h-full shrink-0 overflow-clip antialiased">
-            <div ref={scaledSurface} className="absolute flex justify-center items-center" style={{ width: size.x / ZOOM_MIN, height: size.y / ZOOM_MIN }}>
+        <div ref={container} {...props} className={"relative z-1 shrink-0 overflow-clip antialiased h-full w-full flex justify-center items-center"}>
+            <div
+                ref={scaledSurface}
+                className="relative shrink-0 flex justify-center items-center"
+                style={{ width: size.x / ZOOM_MIN, height: size.y / ZOOM_MIN }}
+            >
                 <div
                     ref={surface}
-                    className="absolute surface w-full h-full origin-center"
+                    className="absolute surface h-full w-full origin-center"
                     style={{
                         backgroundSize: `${(size.max ?? 0) * 0.05}px ${(size.max ?? 0) * 0.05}px`,
-                        backgroundImage: `radial-gradient(#212830 ${(size.max ?? 0) * 0.003}px,transparent 1px)`,
+                        backgroundImage: `radial-gradient(#212830 ${(size.max ?? 0) * 0.004}px,transparent 1px)`,
                     }}
                 ></div>
             </div>
         </div>
     );
-}
+};
+
+export default Surface;
