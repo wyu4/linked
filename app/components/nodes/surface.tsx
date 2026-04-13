@@ -35,7 +35,7 @@ const Surface = ({ className, ...props }: DivPropsNoChildren) => {
     const isSurfaceTarget = (target: EventTarget | Element | null | undefined) => {
         if (!target || !container.current) return false;
         const el = target as HTMLElement;
-        return el.classList.contains("surface") || el === surface.current;
+        return el.classList.contains("surface") || el == surface.current;
     };
 
     useLayoutEffect(() => {
@@ -123,7 +123,7 @@ const Surface = ({ className, ...props }: DivPropsNoChildren) => {
             if (!mounted.current.drag) {
                 const handleFocus = () => {
                     const target = document.activeElement;
-                    if (!isSurfaceTarget(target)) return;
+                    if (isSurfaceTarget(target)) return;
                     (target as HTMLElement).blur();
                 };
 
@@ -176,15 +176,15 @@ const Surface = ({ className, ...props }: DivPropsNoChildren) => {
     }, [zoom, size]);
 
     return (
-        <div ref={container} {...props} className={"relative z-1 shrink-0 overflow-clip antialiased h-full w-full flex justify-center items-center"}>
+        <div ref={container} {...props} className={"surface relative z-1 shrink-0 overflow-clip antialiased h-full w-full flex justify-center items-center"}>
             <div
                 ref={scaledSurface}
-                className="relative shrink-0 flex justify-center items-center"
+                className="surface relative shrink-0 flex justify-center items-center"
                 style={{ width: size.x / ZOOM_MIN, height: size.y / ZOOM_MIN }}
             >
                 <div
                     ref={surface}
-                    className="absolute surface h-full w-full origin-center"
+                    className="surface absolute h-full w-full origin-center"
                     style={{
                         backgroundSize: `${(size.max ?? 0) * 0.05}px ${(size.max ?? 0) * 0.05}px`,
                         backgroundImage: `radial-gradient(#212830 ${(size.max ?? 0) * 0.004}px,transparent 1px)`,
