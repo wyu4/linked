@@ -23,12 +23,33 @@ const Connection = forwardRef<
     const nameRef = useRef<HTMLParagraphElement>(null);
 
     useGSAP(() => {
-        if (initialPos.length < 2) return;
+        if (initialPos.length < 2 || initialDirection.length < 2) return;
 
-        gsap.set([ref.current, nameRef.current], {
-            x: initialPos[0],
-            y: initialPos[1],
-        });
+        gsap.fromTo(
+            [ref.current, nameRef.current],
+            {
+                x: initialPos[0],
+                y: initialPos[1],
+            },
+            {
+                x: "+=" + initialDirection[0],
+                y: "+=" + initialDirection[0],
+                duration: 1,
+                ease: "sine.out",
+            },
+        );
+        gsap.fromTo(
+            [ref.current, nameRef.current],
+            { opacity: 0 },
+            {
+                opacity: 1,
+                stagger: {
+                    from: "start",
+                    each: 0.25,
+                },
+                duration: 0.5,
+            },
+        );
     }, []);
 
     useGSAP(

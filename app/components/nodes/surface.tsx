@@ -19,6 +19,8 @@ const ZOOM_MAX = 2;
 const ZOOM_MIN = 0.5;
 const ZOOM_DURATION = 0.5;
 
+const INITIAL_DRIFT_DISTANCE = 2 * REM;
+
 const BOUNDS_ZERO: Bounds = { x: 0, y: 0, max: 0 };
 
 type Mounted = {
@@ -35,6 +37,8 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
     const zoomPosition = useRef<Bounds>(BOUNDS_ZERO);
     const pinchDistance = useRef<number>(undefined);
     const connectionRefs = useRef<HTMLDivElement[]>([]);
+
+    const calculateRandomDirection = () => Math.random() * 2 * INITIAL_DRIFT_DISTANCE - INITIAL_DRIFT_DISTANCE;
 
     const createConnectionElements = (): JSX.Element[] => {
         const refs: HTMLDivElement[] = [];
@@ -54,6 +58,7 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
                     size={size}
                     data={con}
                     initialPos={[x / ZOOM_MIN, y / ZOOM_MIN]}
+                    initialDirection={[calculateRandomDirection(), calculateRandomDirection()]}
                 />
             );
         });
@@ -228,7 +233,7 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
                 >
                     <div className="surface relative w-full h-full">
                         {data && createConnectionElements()}
-                        <ConnectionLine windowSize={size} connections={connectionRefs.current} zoom={zoom} className="z-15" />
+                        <ConnectionLine windowSize={size} connections={connectionRefs.current} zoom={zoom} className="z-15" updateTime={updateTime} />
                     </div>
                 </div>
             </div>
