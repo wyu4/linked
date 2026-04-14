@@ -227,8 +227,8 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
                     ref={surface}
                     className="surface absolute h-full w-full origin-center flex justify-center items-center"
                     style={{
-                        backgroundSize: `${(size.max ?? 0) * 0.05}px ${(size.max ?? 0) * 0.05}px`,
-                        backgroundImage: `radial-gradient(#212830 ${(size.max ?? 0) * 0.004}px,transparent 1px)`,
+                        backgroundSize: `${calculateNodeWidth(size.x)}px ${calculateNodeWidth(size.x)}px`,
+                        backgroundImage: `radial-gradient(#212830 ${(size.max ?? 0) * 0.005}px,transparent 1px)`,
                     }}
                 >
                     <div className="surface relative w-full h-full">
