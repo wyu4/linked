@@ -23,6 +23,7 @@ export default function DashboardClient({ token, username }: DashboardClientType
     const target = searchParams.get("target") ?? "";
     const [searching, setSearching] = useState(false);
     const [stream, setStream] = useState<SearchStream | undefined>(undefined);
+    const [data, setData] = useState<MutualConnection[] | undefined>(undefined);
     const cache = useRef<Map<string, string[]>>(new Map<string, string[]>());
     const lastParamUpdate = useRef<number>(Date.now());
     const router = useRouter();
@@ -76,6 +77,7 @@ export default function DashboardClient({ token, username }: DashboardClientType
         )
             .then((data) => {
                 console.log(data.map((connection) => connection.login).join(" => "));
+                setData(data);
             })
             .finally(() => {
                 setSearching(false);
@@ -94,7 +96,7 @@ export default function DashboardClient({ token, username }: DashboardClientType
 
     return (
         <div className="absolute bg-background h-full w-full flex flex-col items-center justify-center overflow-hidden">
-            <Surface />
+            <Surface data={data} />
             <StartupForm
                 searching={searching}
                 displayUser={username}

@@ -2,10 +2,12 @@ import { DivPropsNoChildren } from "@/types/global";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { Draggable, InertiaPlugin } from "gsap/all";
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import Connection from "./connection";
+import { REM } from "@/utils/scaling";
 
 type SurfaceType = {
-    data: MutualConnection[];
+    data?: MutualConnection[];
 };
 
 gsap.registerPlugin(Draggable, InertiaPlugin);
@@ -15,7 +17,6 @@ const ZOOM_MAX = 2;
 const ZOOM_MIN = 0.5;
 const ZOOM_DURATION = 0.5;
 
-type Bounds = { x: number; y: number; max?: number };
 const BOUNDS_ZERO: Bounds = { x: 0, y: 0, max: 0 };
 
 type Mounted = {
@@ -23,7 +24,7 @@ type Mounted = {
     scale: boolean;
 };
 
-const Surface = ({ className, ...props }: DivPropsNoChildren) => {
+const Surface = ({ className, data = [], ...props }: SurfaceType & DivPropsNoChildren) => {
     const container = useRef<HTMLDivElement>(null);
     const surface = useRef<HTMLDivElement>(null);
     const scaledSurface = useRef<HTMLDivElement>(null);
@@ -35,7 +36,7 @@ const Surface = ({ className, ...props }: DivPropsNoChildren) => {
     const isSurfaceTarget = (target: EventTarget | Element | null | undefined) => {
         if (!target || !container.current) return false;
         const el = target as HTMLElement;
-        return el.classList.contains("surface") || el == surface.current;
+        return !el.classList.contains("node") && (el.classList.contains("surface") || el == surface.current);
     };
 
     useLayoutEffect(() => {
@@ -121,7 +122,7 @@ const Surface = ({ className, ...props }: DivPropsNoChildren) => {
             if (!container.current || !surface.current || (size.max ?? 0) <= 0) return;
 
             if (!mounted.current.drag) {
-                const handleFocus = () => {
+                const handleFocus = (e: PointerEvent) => {
                     const target = document.activeElement;
                     if (isSurfaceTarget(target)) return;
                     (target as HTMLElement).blur();
@@ -137,6 +138,10 @@ const Surface = ({ className, ...props }: DivPropsNoChildren) => {
         },
         { scope: container, dependencies: [size] },
     );
+
+    useEffect(() => {
+        setZoom(ZOOM_MIN);
+    }, [data]);
 
     useGSAP(() => {
         if (!container.current || !scaledSurface.current || !surface.current || (size.max ?? 0) <= 0) return;
@@ -184,12 +189,33 @@ const Surface = ({ className, ...props }: DivPropsNoChildren) => {
             >
                 <div
                     ref={surface}
-                    className="surface absolute h-full w-full origin-center"
+                    className="surface absolute h-full w-full origin-center flex justify-center items-center"
                     style={{
                         backgroundSize: `${(size.max ?? 0) * 0.05}px ${(size.max ?? 0) * 0.05}px`,
                         backgroundImage: `radial-gradient(#212830 ${(size.max ?? 0) * 0.004}px,transparent 1px)`,
                     }}
-                ></div>
+                >
+                    <div className="surface relative w-full h-full">
+                        {data &&
+                            data.map((con, i) => {
+                                const nodeW = Math.min(size.x / 10, 7.5 * REM);
+                                const gap = (size.x / data.length) * 0.75;
+                                const totalWidth = gap * (data.length - 1) + nodeW;
+
+                                const x = i * gap + size.x / 2 - totalWidth / 2;
+                                const y = Math.random() * size.y * 0.33 + size.y * 0.33;
+                                return (
+                                    <Connection
+                                        key={`node-${i}`}
+                                        container={container.current}
+                                        size={size}
+                                        data={con}
+                                        initialPos={[x / ZOOM_MIN, y / ZOOM_MIN]}
+                                    />
+                                );
+                            })}
+                    </div>
+                </div>
             </div>
         </div>
     );

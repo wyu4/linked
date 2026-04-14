@@ -255,8 +255,8 @@ function SubmitButton({ searching, onClick }: SubmitButtonType) {
                 splitText.current = new SplitText(textRef.current, { type: "words, chars" });
             }
 
-            gsap.killTweensOf(splitText.current!.chars);
-            gsap.to(splitText.current.chars, {
+            const tl = gsap.timeline();
+            tl.to(splitText.current.chars, {
                 y: searching ? "1rem" : 0,
                 opacity: searching ? 0 : 1,
                 duration: 0.1,
@@ -265,13 +265,18 @@ function SubmitButton({ searching, onClick }: SubmitButtonType) {
                     from: searching ? "start" : "end",
                 },
                 ease: "sine.inOut",
-            });
+                overwrite: true,
+            }).to(
+                textContainer.current,
+                {
+                    marginLeft: searching ? `${-textWidth.current}px` : "0.25rem",
+                    duration: 0.25,
+                    ease: "sine.inOut",
+                },
+                "<",
+            );
 
-            gsap.to(textContainer.current, {
-                marginLeft: searching ? `${-textWidth.current}px` : "0.25rem",
-                duration: 0.25,
-                ease: "sine.inOut",
-            });
+            return () => tl.kill();
         },
         {
             dependencies: [searching],
