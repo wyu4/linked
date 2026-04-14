@@ -1,10 +1,10 @@
 import { DivPropsNoChildren } from "@/types/global";
 import { bindRefAndForwardRef } from "@/utils/ref-helper";
-import { REM } from "@/utils/scaling";
+import { calculateNodeWidth, REM } from "@/utils/scaling";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { Draggable, InertiaPlugin } from "gsap/all";
-import { forwardRef, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { forwardRef, useRef } from "react";
 
 gsap.registerPlugin(Draggable, InertiaPlugin);
 
@@ -73,11 +73,11 @@ const Connection = forwardRef<
         <>
             <div
                 ref={(node) => bindRefAndForwardRef(node, forwardedRef, ref)}
-                className={"node absolute aspect-square bg-font rounded-full overflow-y-visible overflow-x-hidden " + className}
-                style={{ x: initialPos[0], y: initialPos[1], width: size.x / 10, minWidth: 7.5 * REM }}
+                className={"node absolute aspect-square bg-font rounded-full overflow-y-visible overflow-x-hidden z-20" + className}
+                style={{ x: initialPos[0], y: initialPos[1], width: calculateNodeWidth(size.x) }}
                 {...props}
             ></div>
-            <p ref={nameRef} className="code absolute text-2xl text-center origin-center" style={{ width: `${data.login.length}rem` }}>
+            <p ref={nameRef} className="code absolute text-2xl text-center origin-center z-20" style={{ width: `${data.login.length}rem` }}>
                 {data.login}
             </p>
         </>

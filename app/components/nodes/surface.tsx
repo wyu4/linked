@@ -2,9 +2,10 @@ import { DivPropsNoChildren } from "@/types/global";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { Draggable, InertiaPlugin } from "gsap/all";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { JSX, RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Connection from "./connection";
-import { REM } from "@/utils/scaling";
+import { calculateNodeWidth, REM } from "@/utils/scaling";
+import ConnectionLine from "./line";
 
 type SurfaceType = {
     data?: MutualConnection[];
@@ -33,6 +34,32 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
     const [zoom, setZoom] = useState(ZOOM_MIN);
     const zoomPosition = useRef<Bounds>(BOUNDS_ZERO);
     const pinchDistance = useRef<number>(undefined);
+    const connectionRefs = useRef<HTMLDivElement[]>([]);
+
+    const createConnectionElements = (): JSX.Element[] => {
+        const refs: HTMLDivElement[] = [];
+        const elements = data.map((con, i) => {
+            // if (i === 0) connectionElements.current = [];
+            const gap = (size.x / data.length) * 0.75;
+            const totalWidth = gap * (data.length - 1) + calculateNodeWidth(size.x);
+
+            const x = i * gap + size.x / 2 - totalWidth / 2;
+            const y = Math.random() * size.y * 0.33 + size.y * 0.33;
+            return (
+                <Connection
+                    ref={(node) => {
+                        refs[i] = node!;
+                    }}
+                    key={`node-${i}-${updateTime}`}
+                    size={size}
+                    data={con}
+                    initialPos={[x / ZOOM_MIN, y / ZOOM_MIN]}
+                />
+            );
+        });
+        connectionRefs.current = refs;
+        return elements;
+    };
 
     const isSurfaceTarget = (target: EventTarget | Element | null | undefined) => {
         if (!target || !container.current) return false;
@@ -73,13 +100,14 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
         };
 
         const onTouchStart = (e: TouchEvent) => {
+            if (!isSurfaceTarget(e.target)) return;
             if (e.touches.length === 2) {
                 pinchDistance.current = getDistanceBetweenTouches(e.touches);
             }
         };
 
         const onTouchMove = (e: TouchEvent) => {
-            if (e.touches.length != 2 || !pinchDistance.current) return;
+            if (!isSurfaceTarget(e.target) || e.touches.length != 2 || !pinchDistance.current) return;
             e.preventDefault();
 
             const touches = e.touches;
@@ -129,12 +157,14 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
                     (target as HTMLElement).blur();
                 };
 
-                Draggable.create(surface.current, {
+                const [draggable] = Draggable.create(surface.current, {
                     bounds: container.current,
                     inertia: true,
                     onPress: handleFocus,
                 });
                 mounted.current.drag = true;
+
+                return () => draggable.kill();
             }
         },
         { scope: container, dependencies: [size] },
@@ -197,16 +227,8 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
                     }}
                 >
                     <div className="surface relative w-full h-full">
-                        {data &&
-                            data.map((con, i) => {
-                                const nodeW = Math.min(size.x / 10, 7.5 * REM);
-                                const gap = (size.x / data.length) * 0.75;
-                                const totalWidth = gap * (data.length - 1) + nodeW;
-
-                                const x = i * gap + size.x / 2 - totalWidth / 2;
-                                const y = Math.random() * size.y * 0.33 + size.y * 0.33;
-                                return <Connection key={`node-${i}-${updateTime}`} size={size} data={con} initialPos={[x / ZOOM_MIN, y / ZOOM_MIN]} />;
-                            })}
+                        {data && createConnectionElements()}
+                        <ConnectionLine windowSize={size} connections={connectionRefs.current} zoom={zoom} className="z-15" />
                     </div>
                 </div>
             </div>
