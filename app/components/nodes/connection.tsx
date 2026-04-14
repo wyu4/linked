@@ -13,18 +13,17 @@ const FOLLOW_DURATION = 0.03;
 const Connection = forwardRef<
     HTMLDivElement,
     DivPropsNoChildren & {
-        container: HTMLDivElement | null;
         size: Bounds;
         data: MutualConnection;
         initialPos: number[];
         initialDirection?: number[];
     }
->(({ container, data, size, initialPos, initialDirection = [0, 0], className = "", ...props }, forwardedRef) => {
+>(({ data, size, initialPos, initialDirection = [0, 0], className = "", ...props }, forwardedRef) => {
     const ref = useRef<HTMLDivElement>(null);
     const nameRef = useRef<HTMLParagraphElement>(null);
 
     useGSAP(() => {
-        if (!container || initialPos.length < 2) return;
+        if (initialPos.length < 2) return;
 
         gsap.set([ref.current, nameRef.current], {
             x: initialPos[0],
@@ -55,7 +54,7 @@ const Connection = forwardRef<
             gsap.ticker.add(updateNamePosition);
 
             const [draggable] = Draggable.create(ref.current, {
-                bounds: container,
+                bounds: ref.current.parentElement,
                 inertia: true,
                 onPress: (e: PointerEvent) => e.stopPropagation(),
             });
@@ -66,7 +65,7 @@ const Connection = forwardRef<
         },
         {
             scope: ref,
-            dependencies: [container],
+            dependencies: [],
         },
     );
 

@@ -8,6 +8,7 @@ import { REM } from "@/utils/scaling";
 
 type SurfaceType = {
     data?: MutualConnection[];
+    updateTime?: number;
 };
 
 gsap.registerPlugin(Draggable, InertiaPlugin);
@@ -24,7 +25,7 @@ type Mounted = {
     scale: boolean;
 };
 
-const Surface = ({ className, data = [], ...props }: SurfaceType & DivPropsNoChildren) => {
+const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType & DivPropsNoChildren) => {
     const container = useRef<HTMLDivElement>(null);
     const surface = useRef<HTMLDivElement>(null);
     const scaledSurface = useRef<HTMLDivElement>(null);
@@ -204,15 +205,7 @@ const Surface = ({ className, data = [], ...props }: SurfaceType & DivPropsNoChi
 
                                 const x = i * gap + size.x / 2 - totalWidth / 2;
                                 const y = Math.random() * size.y * 0.33 + size.y * 0.33;
-                                return (
-                                    <Connection
-                                        key={`node-${i}`}
-                                        container={container.current}
-                                        size={size}
-                                        data={con}
-                                        initialPos={[x / ZOOM_MIN, y / ZOOM_MIN]}
-                                    />
-                                );
+                                return <Connection key={`node-${i}-${updateTime}`} size={size} data={con} initialPos={[x / ZOOM_MIN, y / ZOOM_MIN]} />;
                             })}
                     </div>
                 </div>
