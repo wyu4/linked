@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Linked
 
-## Getting Started
+<img src="./public/banner.png/" >
 
-First, run the development server:
+A web-app that finds the shortest path between two users on GitHub. This is based on the _Six Degrees of Seperation_ theory.
+
+**Live demo: [linked.wyu.app](https://linked.wyu.app)**
+
+## 💡 Idea
+
+The _Six Degress of Seperation_ theory says that any two people in the world can be connected to each other using at most six social connections.
+
+This app uses Bi-Directional Breadth-First Search to comb through two user's public followings/followers to find social connections at a maximum depth of 10.
+
+## 📦 Installation
+
+_Linked_ uses [React](https://react.dev/) + [NextJS](https://nextjs.org/), and is deployed on [Vercel](https://vercel.com/). The project is licensed, see [LICENSE.md](./LICENSE.md).
+
+### Requirements
+
+- [Git](https://git-scm.com/install/)
+- [Node.js](https://nodejs.org/en/download)
+
+### Instructions
+
+Clone the repository to get the project onto your device.
+
+```bash
+git clone https://github.com/wyu4/linked.git
+```
+
+Then, install the project dependencies.
+
+```bash
+npm install
+```
+
+Create a copy of [.env.example](./.env.example), replacing `.example` with `.local`, and fill the information in the file.
+
+```
+GITHUB_CLIENT_ID=0 # Your OAUTH app ID
+GITHUB_CLIENT_SECRET=0 # Your OAUTH secret
+BETTER_AUTH_SECRET=0 # Generate a secret using 'npm run generate'
+BETTER_AUTH_URL=http://localhost:3000 # Change this to your base URL
+NEXT_PUBLIC_MAX_DEPTH=5 # Change this to the max lookup depth for one direction of BFS
+```
+
+To run the project, run the development command.
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Commands
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command               | Description                                                    |
+| --------------------- | -------------------------------------------------------------- |
+| `npm run dev`         | Builds and runs the project locally with a live-updating build |
+| `npm run build`       | Builds and runs an optimized production build locally          |
+| `npm run lint`        | Runs linting checks                                            |
+| `npm run refresh`     | Clears `.next` cache and reloads dependencies                  |
+| `npm run dev:refresh` | Runs the refresh command and then the development command      |
+| `npm generate`        | Genertes a valid `BETTERAUTH` encryption secret.               |
