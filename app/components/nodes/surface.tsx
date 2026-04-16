@@ -243,7 +243,13 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
                 >
                     <div className="surface relative w-full h-full">
                         {data && createConnectionElements()}
-                        <ConnectionLine windowSize={size} connections={connectionRefs.current} zoom={zoom} className="z-15" updateTime={updateTime} />
+                        <ConnectionLine
+                            scaledSurfaceRef={scaledSurface}
+                            windowSize={size}
+                            connections={connectionRefs.current}
+                            className="z-15"
+                            updateTime={updateTime}
+                        />
                     </div>
                 </div>
             </div>

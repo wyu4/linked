@@ -3,17 +3,17 @@ import { bindRefAndForwardRef } from "@/utils/ref-helper";
 import { calculateNodeWidth } from "@/utils/scaling";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
-import { forwardRef, useRef } from "react";
+import { forwardRef, RefObject, useRef } from "react";
 
 const ConnectionLine = forwardRef<
     SVGSVGElement,
     SVGPropsNoChildren & {
+        scaledSurfaceRef: RefObject<HTMLDivElement | null>;
         connections: HTMLDivElement[];
         windowSize: Bounds;
-        zoom: number;
         updateTime: number;
     }
->(({ connections, updateTime, zoom, windowSize, className = "", ...props }, forwardRef) => {
+>(({ scaledSurfaceRef, connections, updateTime, windowSize, className = "", ...props }, forwardRef) => {
     const ref = useRef<SVGSVGElement>(null);
     const lineRef = useRef<SVGPolylineElement>(null);
     const nodeWidth = calculateNodeWidth(windowSize.x);
@@ -23,25 +23,21 @@ const ConnectionLine = forwardRef<
         let frame: number | null = null;
 
         const updatePoints = () => {
-            if (ref.current && lineRef.current) {
-                const svgPoint = ref.current.createSVGPoint();
-                const inverseCTM = ref.current.getScreenCTM()?.inverse();
-                if (inverseCTM) {
-                    const points = connections
-                        .filter(Boolean)
-                        .map((element) => {
-                            const bounds = element.getBoundingClientRect();
+            if (ref.current && lineRef.current && scaledSurfaceRef.current) {
+                const bounds = ref.current.getBoundingClientRect();
+                const zoom = gsap.getProperty(scaledSurfaceRef.current, "scale") as number;
+                const points = connections
+                    .filter(Boolean)
+                    .map((element) => {
+                        const elementBounds = element.getBoundingClientRect();
 
-                            svgPoint.x = bounds.x;
-                            svgPoint.y = bounds.y;
+                        const x = (elementBounds.x - bounds.x) / zoom;
+                        const y = (elementBounds.y - bounds.y) / zoom;
 
-                            const local = svgPoint.matrixTransform(inverseCTM);
-
-                            return `${local.x + nodeWidth / 2},${local.y + nodeWidth / 2}`;
-                        })
-                        .join(" ");
-                    lineRef.current.setAttribute("points", points);
-                }
+                        return `${x + nodeWidth / 2},${y + nodeWidth / 2}`;
+                    })
+                    .join(" ");
+                lineRef.current.setAttribute("points", points);
             }
             frame = requestAnimationFrame(updatePoints);
         };
