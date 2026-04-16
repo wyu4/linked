@@ -77,6 +77,7 @@ const Connection = forwardRef<
             const [draggable] = Draggable.create(ref.current, {
                 bounds: ref.current.parentElement,
                 inertia: true,
+                allowNativeTouchScrolling: false,
                 onPress: (e: PointerEvent) => e.stopPropagation(),
             });
             return () => {

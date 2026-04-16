@@ -19,8 +19,8 @@ const RENDER_TEST_BUTTON = false;
 
 export default function DashboardClient({ token, username }: DashboardClientType) {
     const searchParams = useSearchParams();
-    const user = searchParams.get("user") ?? "";
-    const target = searchParams.get("target") ?? "";
+    const user = useRef<string>(filterUsername(searchParams.get("user") ?? ""));
+    const target = useRef<string>(filterUsername(searchParams.get("target") ?? ""));
     const [searching, setSearching] = useState(false);
     const [stream, setStream] = useState<SearchStream | undefined>(undefined);
     const [data, setData] = useState<MutualConnection[] | undefined>(undefined);
@@ -29,10 +29,11 @@ export default function DashboardClient({ token, username }: DashboardClientType
     const lastParamUpdate = useRef<number>(Date.now());
     const router = useRouter();
 
-    const updateParam = (key: "user" | "target", value: string) => {
+    const updateParams = () => {
         if (searching) return;
         const params = new URLSearchParams(searchParams.toString());
-        params.set(key, value);
+        params.set("user", user.current);
+        params.set("target", target.current);
         router.replace(`/dashboard?${params.toString()}`, { scroll: false });
         lastParamUpdate.current = Date.now();
     };
@@ -68,8 +69,8 @@ export default function DashboardClient({ token, username }: DashboardClientType
         if (RENDER_TEST_BUTTON) return;
         searchConnections(
             token,
-            user,
-            target,
+            user.current,
+            target.current,
             async (data) => {
                 if (data.error) await handleError(data);
                 setStream({ ...data });
@@ -90,9 +91,10 @@ export default function DashboardClient({ token, username }: DashboardClientType
     const handleSearch = (): void | FormError => {
         if (Date.now() - lastParamUpdate.current < COOLDOWN_AFTER_PARAM_UPDATE) return "TooFast";
         if (searching) return;
-        if (user === "" && target === "") return "Both";
-        if (user === "") return "User";
-        if (target === "") return "Target";
+        if (user.current === "" && target.current === "") return "Both";
+        if (user.current === "") return "User";
+        if (target.current === "") return "Target";
+        updateParams();
         setSearching(true);
     };
 
@@ -102,10 +104,10 @@ export default function DashboardClient({ token, username }: DashboardClientType
             <StartupForm
                 searching={searching}
                 displayUser={username}
-                user={user}
-                setUser={(value) => updateParam("user", filterUsername(value))}
-                target={target}
-                setTarget={(value) => updateParam("target", filterUsername(value))}
+                user={user.current}
+                setUser={(value) => (user.current = filterUsername(value))}
+                target={target.current}
+                setTarget={(value) => (target.current = filterUsername(value))}
                 onSubmit={handleSearch}
             />
             {RENDER_TEST_BUTTON && (

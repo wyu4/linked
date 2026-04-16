@@ -7,27 +7,6 @@ import { SplitText } from "gsap/all";
 import { useSearchParams } from "next/navigation";
 import { ChangeEvent, Dispatch, forwardRef, SetStateAction, useLayoutEffect, useRef, useState } from "react";
 
-const UserInput = forwardRef<HTMLInputElement, InputProps & { displayUser?: string }>(({ className, displayUser = "wyu4", onChange, ...props }, ref) => {
-    const filter = (e: ChangeEvent<HTMLInputElement>) => {
-        e.target.value = filterUsername(e.target.value);
-        onChange?.(e);
-    };
-    return (
-        <input
-            ref={ref}
-            className={"code border border-[#00000000] ring-2 ring-border focus:ring-link rounded-xl text-lg outline-hidden px-3 py-1.5 shrink-0 " + className}
-            type="text"
-            placeholder={`i.e. ${displayUser}`}
-            onChange={filter}
-            spellCheck={false}
-            autoCapitalize="off"
-            autoComplete="off"
-            autoCorrect="off"
-            {...props}
-        />
-    );
-});
-
 export function StartupForm({ displayUser = "wyu4", searching, user, setUser, target, setTarget, onSubmit }: FormType) {
     const [userInvalid, setUserInvalid] = useState(false);
     const [targetInvalid, setTargetInvalid] = useState(false);
@@ -227,6 +206,27 @@ function UserForm({ label = "User", isInvalid, setInvalid, setUser, displayUser 
         </div>
     );
 }
+
+const UserInput = forwardRef<HTMLInputElement, InputProps & { displayUser?: string }>(({ className, displayUser = "wyu4", onChange, ...props }, ref) => {
+    const filter = (e: ChangeEvent<HTMLInputElement>) => {
+        e.target.value = filterUsername(e.target.value);
+        onChange?.(e);
+    };
+    return (
+        <input
+            ref={ref}
+            className={"code border border-[#00000000] ring-2 ring-border focus:ring-link rounded-xl text-lg outline-hidden px-3 py-1.5 shrink-0 " + className}
+            type="text"
+            placeholder={`i.e. ${displayUser}`}
+            onChange={filter}
+            spellCheck={false}
+            autoCapitalize="off"
+            autoComplete="off"
+            autoCorrect="off"
+            {...props}
+        />
+    );
+});
 
 type SubmitButtonType = {
     searching: boolean;
