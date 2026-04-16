@@ -10,7 +10,7 @@ A web-app that finds the shortest path between two users on GitHub. This is base
 
 The _Six Degress of Seperation_ theory says that any two people in the world can be connected to each other using at most six social connections.
 
-This app uses Bi-Directional Breadth-First Search to comb through two user's public followings/followers to find social connections at a maximum depth of 10.
+This app uses Bi-Directional Breadth-First Search to comb through two users' public followings/followers to find social connections at a maximum depth of 10.
 
 ## 📦 Installation
 
@@ -20,6 +20,7 @@ _Linked_ uses [React](https://react.dev/) + [NextJS](https://nextjs.org/), and i
 
 - [Git](https://git-scm.com/install/)
 - [Node.js](https://nodejs.org/en/download)
+- [Playwright](https://playwright.dev/docs/intro#installing-playwright) (Optional, see commands section)
 
 ### Instructions
 
@@ -60,4 +61,20 @@ npm run dev
 | `npm run lint`        | Runs linting checks                                            |
 | `npm run refresh`     | Clears `.next` cache and reloads dependencies                  |
 | `npm run dev:refresh` | Runs the refresh command and then the development command      |
-| `npm generate`        | Genertes a valid `BETTERAUTH` encryption secret.               |
+| `npm run generate`    | Generates a valid `BETTERAUTH` encryption secret.              |
+| `npm run clear`       | Clears only the `.next` cache folder                           |
+| `npm run dev:clear`   | Runs the clear command and then the development command        |
+
+This project also supports _Playwright_ commands for testing purposes. Install using the npx command line.
+
+```bash
+npx playwright install
+```
+
+To use any of the following commands, first host the project locally on port 3000 using `npm run dev` on a seperate terminal.
+
+| Additional Test Commands | Description                                  |
+| ------------------------ | -------------------------------------------- |
+| `npm run test:chrome`    | Creates a chrome window and opens port 3000  |
+| `npm run test:firefox`   | Creates a firefox window and opens port 3000 |
+| `npm run test:safari`    | Creates a safari window and opens port 3000  |

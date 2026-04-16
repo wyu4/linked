@@ -7,22 +7,26 @@
         "build": "next build",
         "start": "next start",
         "lint": "eslint",
+        "clear": "rmdir /s /q .next",
+        "dev:clear": "npm run clear & npm run dev",
         "refresh": "rmdir /s /q .next & rmdir /s /q node_modules & npm install",
         "dev:refresh": "npm run refresh & npm run dev",
-        "generate": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+        "generate": "node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+        "test:chrome": "npx playwright test --headed --browser=chromium",
+        "test:firefox": "npx playwright test --headed --browser=firefox",
+        "test:safari": "npx playwright test --headed --browser=webkit"
     },
     "dependencies": {
         "@gsap/react": "^2.1.2",
-        "@react-spring/web": "^10.0.3",
         "better-auth": "^1.6.2",
         "gsap": "^3.14.2",
         "next": "16.2.2",
-        "pixi.js": "^8.17.1",
         "react": "19.2.4",
         "react-dom": "19.2.4",
         "react-icons": "^5.6.0"
     },
     "devDependencies": {
+        "@playwright/test": "^1.59.1",
         "@tailwindcss/postcss": "^4",
         "@types/node": "^20",
         "@types/react": "^19",
