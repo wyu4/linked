@@ -4,7 +4,7 @@ import { calculateNodeWidth, REM } from "@/utils/scaling";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { Draggable, InertiaPlugin } from "gsap/all";
-import { forwardRef, useRef } from "react";
+import { forwardRef, RefObject, useRef } from "react";
 
 gsap.registerPlugin(Draggable, InertiaPlugin);
 
@@ -13,12 +13,13 @@ const FOLLOW_DURATION = 0.03;
 const Connection = forwardRef<
     HTMLDivElement,
     DivPropsNoChildren & {
+        parentDraggable: RefObject<Draggable | null>;
         size: Bounds;
         data: MutualConnection;
         initialPos: number[];
         initialDirection?: number[];
     }
->(({ data, size, initialPos, initialDirection = [0, 0], className = "", ...props }, forwardedRef) => {
+>(({ parentDraggable, data, size, initialPos, initialDirection = [0, 0], className = "", ...props }, forwardedRef) => {
     const ref = useRef<HTMLDivElement>(null);
     const nameRef = useRef<HTMLParagraphElement>(null);
 
@@ -78,7 +79,13 @@ const Connection = forwardRef<
                 bounds: ref.current.parentElement,
                 inertia: true,
                 allowNativeTouchScrolling: false,
-                onPress: (e: PointerEvent) => e.stopPropagation(),
+                // onPress: (e: PointerEvent) => e.stopPropagation(),
+                onPressInit: () => {
+                    parentDraggable.current?.disable();
+                },
+                onRelease: () => {
+                    parentDraggable.current?.enable();
+                },
             });
             return () => {
                 draggable.kill();

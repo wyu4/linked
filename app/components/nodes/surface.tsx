@@ -37,6 +37,7 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
     const zoomPosition = useRef<Bounds>(BOUNDS_ZERO);
     const pinchDistance = useRef<number>(undefined);
     const connectionRefs = useRef<HTMLDivElement[]>([]);
+    const draggable = useRef<Draggable>(null);
 
     const calculateRandomDirection = () => Math.random() * 2 * INITIAL_DRIFT_DISTANCE - INITIAL_DRIFT_DISTANCE;
 
@@ -54,6 +55,7 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
                     ref={(node) => {
                         refs[i] = node!;
                     }}
+                    parentDraggable={draggable}
                     key={`node-${i}-${updateTime}`}
                     size={size}
                     data={con}
@@ -162,14 +164,22 @@ const Surface = ({ className, data = [], updateTime = 0, ...props }: SurfaceType
                     (target as HTMLElement).blur();
                 };
 
-                const [draggable] = Draggable.create(surface.current, {
+                [draggable.current] = Draggable.create(surface.current, {
                     bounds: container.current,
                     inertia: true,
                     onPress: handleFocus,
+                    onPressInit: function (this: Draggable, e: PointerEvent) {
+                        if ((e.target as HTMLElement).closest(".node")) {
+                            this.endDrag(e);
+                        }
+                    },
                 });
                 mounted.current.drag = true;
 
-                return () => draggable.kill();
+                return () => {
+                    draggable.current?.kill();
+                    draggable.current = null;
+                };
             }
         },
         { scope: container, dependencies: [size] },
