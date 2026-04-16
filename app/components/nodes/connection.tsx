@@ -102,10 +102,15 @@ const Connection = forwardRef<
         <>
             <div
                 ref={(node) => bindRefAndForwardRef(node, forwardedRef, ref)}
-                className={"node absolute aspect-square bg-font rounded-full overflow-y-visible overflow-x-hidden z-20" + className}
+                className={
+                    "node absolute aspect-square bg-font border-4 border-font rounded-full overflow-y-visible overflow-x-hidden flex items-center justify-center z-20" +
+                    className
+                }
                 style={{ x: initialPos[0], y: initialPos[1], width: calculateNodeWidth(size.x) }}
                 {...props}
-            ></div>
+            >
+                <img src={`https://github.com/${data.login}.png`} />
+            </div>
             <p ref={nameRef} className="code absolute text-2xl text-center origin-center z-20" style={{ width: `${data.login.length}rem` }}>
                 {data.login}
             </p>
