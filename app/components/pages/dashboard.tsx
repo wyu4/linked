@@ -1,6 +1,6 @@
 "use client";
 import { filterUsername, searchConnections } from "@/utils/search";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { authClient } from "@/utils/auth-client";
 import { useRouter, useSearchParams } from "next/navigation";
 import { StartupForm } from "../user-input";
@@ -23,6 +23,7 @@ export default function DashboardClient({ token, username }: DashboardClientType
     const target = useRef<string>(filterUsername(searchParams.get("target") ?? ""));
     const [searching, setSearching] = useState(false);
     const [stream, setStream] = useState<SearchStream | undefined>(undefined);
+    const updateStream = useCallback((data: SearchStream) => setStream({ ...data }), []);
     const [data, setData] = useState<MutualConnection[] | undefined>(undefined);
     const [updateTime, setUpdateTime] = useState(0);
     const cache = useRef<Map<string, string[]>>(new Map<string, string[]>());
@@ -73,7 +74,7 @@ export default function DashboardClient({ token, username }: DashboardClientType
             target.current,
             async (data) => {
                 if (data.error) await handleError(data);
-                setStream({ ...data });
+                updateStream(data);
             },
             cache.current,
         )

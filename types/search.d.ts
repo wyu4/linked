@@ -18,3 +18,5 @@ declare type SearchStream = {
     error?: string;
     credentialStatus?: CredentialStatus;
 };
+
+declare type SearchMode = "Shortest" | "Conservative";
