@@ -105,7 +105,6 @@ export async function searchConnections(
     to: string,
     callback?: (data: SearchStream) => void,
     cache: Map<string, string[]> = new Map<string, string[]>(),
-    mode: SearchMode = "Shortest",
 ): Promise<MutualConnection[]> {
     let stream: SearchStream = {
         phase: "Setup",
@@ -191,57 +190,45 @@ export async function searchConnections(
         counterVisited: Map<string, MutualConnection[]>,
         inverted: boolean,
     ): Promise<MutualConnection[] | undefined> => {
+        const path = queue.shift()!;
+        if (path.length <= 0) return;
+        const node = path[path.length - 1];
+
+        const order = path.length;
+        if (order > MAX_DEPTH) return;
+
+        const matches: MutualConnection[][] = [];
+
         const key = inverted ? "end" : "start";
-        const levelSize = Math.min(queue.length, mode === "Shortest" ? queue.length : 1);
-        let shortestMatch: MutualConnection[] | undefined = undefined;
-
-        const updateShortest = (path: MutualConnection[]) => {
-            if (shortestMatch === undefined || shortestMatch.length > path.length) {
-                shortestMatch = path;
-                console.log(`New shortest [${shortestMatch.length}]:\n${shortestMatch.map((data) => data.login).join(" => ")}`);
-            }
-        };
-
-        const getNeighbors = async (login: string) => {
-            let neighbors = cacheLookup(login, key);
-            if (!neighbors) {
-                stream.calls++;
-                neighbors = inverted ? await getFollowing(token, login) : await getFollowers(token, login);
-                cacheSet(login, key, neighbors);
-                await callback?.(stream);
-            }
-            return neighbors;
-        };
-
-        const levelPaths: MutualConnection[][] = [];
-        for (let i = 0; i < levelSize; i++) {
-            const path = queue.shift()!;
-            if (path.length <= 0 || path.length > MAX_DEPTH) continue;
-            levelPaths.push(path);
-        }
-
-        const levelNeighbors = await Promise.all(levelPaths.map((path) => getNeighbors(path[path.length - 1].login)));
-
-        for (let i = 0; i < levelPaths.length; i++) {
-            const path = levelPaths[i];
-            const neighbors = levelNeighbors[i];
-
-            for (const neighbor of neighbors) {
-                if (currentVisited.has(neighbor)) continue;
-                stream.count++;
-                const newPath: MutualConnection[] = [...path, { login: neighbor, type: "follower" }];
-                currentVisited.set(neighbor, newPath);
-
-                if (counterVisited.has(neighbor)) {
-                    updateShortest(inverted ? reconstruct(counterVisited.get(neighbor)!, newPath) : reconstruct(newPath, counterVisited.get(neighbor)!));
-                } else if (newPath.length <= MAX_DEPTH) {
-                    queue.push(newPath);
-                }
-            }
+        let neighbors = cacheLookup(node.login, key);
+        if (!neighbors) {
+            stream.calls++;
             await callback?.(stream);
+            neighbors = inverted ? await getFollowing(token, node.login) : await getFollowers(token, node.login);
+        }
+        cacheSet(node.login, key, neighbors);
+
+        for (const neighbor of neighbors) {
+            if (currentVisited.has(neighbor)) continue;
+
+            stream.count = stream.count + 1;
+            await callback?.(stream);
+
+            const newPath: MutualConnection[] = [...path, { login: neighbor, type: "follower" }];
+            currentVisited.set(neighbor, newPath);
+
+            if (counterVisited.has(neighbor)) {
+                matches.push(inverted ? reconstruct(counterVisited.get(neighbor)!, newPath) : reconstruct(newPath, counterVisited.get(neighbor)!));
+            } else {
+                queue.push(newPath);
+            }
         }
 
-        return shortestMatch;
+        if (matches.length > 0) {
+            return matches.reduce((current, next) => (current.length <= next.length ? current : next));
+        }
+
+        return undefined;
     };
 
     while (startQueue.length > 0 && endQueue.length > 0) {
