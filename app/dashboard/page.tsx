@@ -1,3 +1,5 @@
+"use server";
+
 import { redirect } from "next/navigation";
 import DashboardClient from "../components/pages/dashboard";
 import { auth } from "@/utils/auth";
@@ -13,14 +15,20 @@ export default async () => {
         const account = await auth.api.accountInfo({
             headers: authHeaders,
         });
-        const username = (account?.user as any).username;
+        const user = account?.user as any;
+
+        if (!user) {
+            return <DashboardClient locked={true} />;
+        }
+
+        const username = user["username"];
         const credentials = await auth.api.getAccessToken({
             body: { providerId: "github" },
             headers: authHeaders,
         });
         const token = credentials.accessToken;
         console.log(`User [${username}] logged in with token ${token.slice(0, token.length / 3)}`);
-        return <DashboardClient username={username} token={token} />;
+        return <DashboardClient username={username} token={token} locked={false} />;
     }
     redirect("/login");
 };

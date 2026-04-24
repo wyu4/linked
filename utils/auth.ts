@@ -1,4 +1,6 @@
 import { betterAuth } from "better-auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 export const auth = betterAuth({
     appName: "linked",
@@ -20,6 +22,7 @@ export const auth = betterAuth({
                     username: profile.login,
                 };
             },
+            accessToken: true,
         },
     },
     user: {

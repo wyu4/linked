@@ -1,4 +1,18 @@
 const MAX_DEPTH = +(process.env.NEXT_PUBLIC_MAX_DEPTH || 5);
+const CHUNK_JUMP = 20;
+
+/**
+ * Function that auto-extracts the rate-limit data of a response from GitHub.
+ * @param response GitHub API response
+ * @returns Array with data in the following order: remaining available requests, total available requests, and reset window (UTC seconds)
+ */
+function processRateLimitData(response: Response, stream?: SearchStream) {
+    if (!stream) return;
+    const headers = response.headers;
+    stream.requestsLeft = headers.get("x-ratelimit-remaining") ?? "?";
+    stream.totalRequests = headers.get("x-ratelimit-limit") ?? "?";
+    stream.rateLimitWindow = +(headers.get("x-ratelimit-reset") ?? 0);
+}
 
 /**
  * Send a GET-request to GitHub's REST API
@@ -6,14 +20,17 @@ const MAX_DEPTH = +(process.env.NEXT_PUBLIC_MAX_DEPTH || 5);
  * @param api API endpoint
  * @returns Promise for the fetch request
  */
-export async function fetchFromGitHub(token: string, api: string) {
-    return fetch(api, {
+async function fetchFromGitHub(token: string, api: string, stream?: SearchStream) {
+    const response = await fetch(api, {
         method: "GET",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
         },
     });
+    processRateLimitData(response, stream);
+
+    return response;
 }
 
 /**
@@ -22,8 +39,9 @@ export async function fetchFromGitHub(token: string, api: string) {
  * @param login Username
  * @returns A list of users following the user
  */
-async function getFollowers(token: string, login: string) {
-    const result = await fetchFromGitHub(token, `https://api.github.com/users/${login}/followers?per_page=100`);
+async function getFollowers(token: string, login: string, stream?: SearchStream): Promise<string[]> {
+    const result = await fetchFromGitHub(token, `https://api.github.com/users/${login}/followers?per_page=100`, stream);
+
     if (result.status === 403) {
         console.warn(`Getting followers for ${login} is forbidden.`);
         return [];
@@ -44,8 +62,8 @@ async function getFollowers(token: string, login: string) {
  * @param login Username
  * @returns A list of users followed by the user
  */
-async function getFollowing(token: string, login: string) {
-    const result = await fetchFromGitHub(token, `https://api.github.com/users/${login}/following?per_page=100`);
+async function getFollowing(token: string, login: string, stream?: SearchStream): Promise<string[]> {
+    const result = await fetchFromGitHub(token, `https://api.github.com/users/${login}/following?per_page=100`, stream);
     if (result.status === 403) {
         console.warn(`Getting following for ${login} is forbidden.`);
         return [];
@@ -65,8 +83,8 @@ async function getFollowing(token: string, login: string) {
  * @param token Token to check
  * @returns Returns a string based on the status code of the test call
  */
-export async function validateCredentials(token: string): Promise<CredentialStatus | undefined> {
-    const code = (await fetchFromGitHub(token, `https://api.github.com/user`)).status;
+export async function validateCredentials(token: string, stream?: SearchStream): Promise<CredentialStatus | undefined> {
+    const code = (await fetchFromGitHub(token, `https://api.github.com/user`, stream)).status;
     switch (code) {
         case 200:
         case 304:
@@ -86,8 +104,8 @@ export async function validateCredentials(token: string): Promise<CredentialStat
  * @param login Username
  * @returns `true` if user exists, `false` otherwise
  */
-export async function validateUsername(token: string, login: string) {
-    return (await fetchFromGitHub(token, `https://api.github.com/users/${login}`)).status !== 404;
+export async function validateUsername(token: string, login: string, stream?: SearchStream) {
+    return (await fetchFromGitHub(token, `https://api.github.com/users/${login}`, stream)).status !== 404;
 }
 
 /**
@@ -113,7 +131,6 @@ export async function searchConnections(
         calls: 0,
         ok: true,
     };
-    callback?.(stream);
     from = from.toLowerCase().trim();
     to = to.toLowerCase().trim();
 
@@ -135,7 +152,7 @@ export async function searchConnections(
     stream.phase = "Credentials";
     await callback?.(stream);
 
-    const credentialsValidation = await validateCredentials(token);
+    const credentialsValidation = await validateCredentials(token, stream);
 
     stream.credentialStatus = credentialsValidation;
     await callback?.(stream);
@@ -156,12 +173,12 @@ export async function searchConnections(
         return cache.set(type + "/" + user, neighbors);
     };
 
-    if (!cacheLookup(from, "start") && !(await validateUsername(token, from))) {
+    if (!cacheLookup(from, "start") && !(await validateUsername(token, from, stream))) {
         await streamError("User doesn't exist.");
         return [] as MutualConnection[];
     }
 
-    if (!cacheLookup(to, "end") && !(await validateUsername(token, to))) {
+    if (!cacheLookup(to, "end") && !(await validateUsername(token, to, stream))) {
         await streamError("Target doesn't exist.");
         return [] as MutualConnection[];
     }
@@ -206,8 +223,10 @@ export async function searchConnections(
             let neighbors = cacheLookup(login, key);
             if (!neighbors) {
                 stream.calls++;
-                neighbors = inverted ? await getFollowing(token, login) : await getFollowers(token, login);
-                cacheSet(login, key, neighbors);
+                neighbors = inverted ? await getFollowing(token, login, stream) : await getFollowers(token, login, stream);
+                if (neighbors) {
+                    cacheSet(login, key, neighbors);
+                }
                 await callback?.(stream);
             }
             return neighbors;
@@ -220,13 +239,23 @@ export async function searchConnections(
             levelPaths.push(path);
         }
 
-        const levelNeighbors = await Promise.all(levelPaths.map((path) => getNeighbors(path[path.length - 1].login)));
+        let lastI = 0;
+        let chunkStart = 0;
+        let levelNeighbors: string[][] = [];
+        do {
+            chunkStart += CHUNK_JUMP;
+            const chunk = levelPaths.slice(lastI, chunkStart);
+            const fetchedChunk = await Promise.all(chunk.map((path) => getNeighbors(path[path.length - 1].login)));
+            levelNeighbors = levelNeighbors.concat(fetchedChunk);
+            lastI = chunkStart + 1;
+            await callback?.(stream);
+        } while (chunkStart < levelPaths.length);
 
         for (let i = 0; i < levelPaths.length; i++) {
             const path = levelPaths[i];
             const neighbors = levelNeighbors[i];
 
-            for (const neighbor of neighbors) {
+            for (const neighbor of neighbors ?? []) {
                 if (currentVisited.has(neighbor)) continue;
                 stream.count++;
                 const newPath: MutualConnection[] = [...path, { login: neighbor, type: "follower" }];

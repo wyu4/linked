@@ -7,8 +7,9 @@ import { StartupForm } from "../user-input";
 import Surface from "../nodes/surface";
 
 type DashboardClientType = {
-    token: string;
+    token?: string;
     username?: string;
+    locked: boolean;
 };
 
 /**
@@ -17,7 +18,7 @@ type DashboardClientType = {
 const COOLDOWN_AFTER_PARAM_UPDATE = 200;
 const RENDER_TEST_BUTTON = false;
 
-export default function DashboardClient({ token, username }: DashboardClientType) {
+export default function DashboardClient({ token, username, locked }: DashboardClientType) {
     const searchParams = useSearchParams();
     const user = useRef<string>(filterUsername(searchParams.get("user") ?? ""));
     const target = useRef<string>(filterUsername(searchParams.get("target") ?? ""));
@@ -74,7 +75,7 @@ export default function DashboardClient({ token, username }: DashboardClientType
             target.current,
             async (data) => {
                 if (data.error) await handleError(data);
-                updateStream(data);
+                updateStream({ ...data });
             },
             cache.current,
         )
@@ -102,15 +103,27 @@ export default function DashboardClient({ token, username }: DashboardClientType
     return (
         <div className="absolute bg-background h-full w-full flex flex-col items-center justify-center overflow-hidden">
             <Surface data={data} updateTime={updateTime} />
-            <StartupForm
-                searching={searching}
-                displayUser={username}
-                user={user.current}
-                setUser={(value) => (user.current = filterUsername(value))}
-                target={target.current}
-                setTarget={(value) => (target.current = filterUsername(value))}
-                onSubmit={handleSearch}
-            />
+            {!locked && (
+                <StartupForm
+                    searching={searching}
+                    displayUser={username}
+                    user={user.current}
+                    setUser={(value) => (user.current = filterUsername(value))}
+                    target={target.current}
+                    setTarget={(value) => (target.current = filterUsername(value))}
+                    onSubmit={handleSearch}
+                />
+            )}
+            {locked && (
+                <div className="w-full h-full flex flex-col items-center justify-center">
+                    <h1>You have been rate limited.</h1>
+                </div>
+            )}
+            {stream && (
+                <div className="absolute right-0 bottom-0 flex flex-row gap-1 p-2 items-center justify-center">
+                    <p className="text-nowrap">{`${stream.requestsLeft} / ${stream.totalRequests}`}</p>
+                </div>
+            )}
             {RENDER_TEST_BUTTON && (
                 <button
                     className="absolute z-100 bottom-10 bg-link w-full flex flex-row justify-center items-center py-2.5 rounded-xl"

@@ -17,6 +17,9 @@ declare type SearchStream = {
     ok: boolean;
     error?: string;
     credentialStatus?: CredentialStatus;
+    requestsLeft?: string;
+    totalRequests?: string;
+    rateLimitWindow?: number;
 };
 
 declare type SearchMode = "Shortest" | "Conservative";
